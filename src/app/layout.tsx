@@ -37,10 +37,10 @@ export const metadata: Metadata = {
     locale: "en_GH",
     images: [
       {
-        url: "https://images.unsplash.com/photo-1594736797933-d0501ba2fe65?w=1200&q=80",
-        width: 1200,
-        height: 630,
-        alt: "Raf's Souq signature turban styling",
+        url: "/brand/rafs-souq-logo.png",
+        width: 1177,
+        height: 803,
+        alt: "Raf's Souq brand logo",
       },
     ],
   },
@@ -48,6 +48,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Raf's Souq",
     description: "Signature turbans, shades, veils, and ready to wear dresses.",
+    images: ["/brand/rafs-souq-logo.png"],
   },
   robots: { index: true, follow: true },
 };

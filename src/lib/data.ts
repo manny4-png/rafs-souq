@@ -1,6 +1,6 @@
 import type { Product, Collection, NavLink } from "@/types";
 
-export const SITE_URL = "https://rafssouq.com";
+export const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://rafs-souq.vercel.app";
 
 export const NAV_LINKS: NavLink[] = [
   { label: "Home", href: "/" },
