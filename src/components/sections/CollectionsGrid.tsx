@@ -10,6 +10,7 @@ import type { Collection } from "@/types";
 export function CollectionsGrid({ collections }: { collections: Collection[] }) {
   const { ref, inView } = useInView({ threshold: 0.1, triggerOnce: true });
   const visibleCollections = collections.slice(0, 5);
+  const featuredCollection = visibleCollections[0];
 
   return (
     <section
@@ -48,6 +49,7 @@ export function CollectionsGrid({ collections }: { collections: Collection[] }) 
         </div>
 
         {/* Grid */}
+        {featuredCollection ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {/* First column — tall featured card */}
           <motion.div
@@ -57,7 +59,7 @@ export function CollectionsGrid({ collections }: { collections: Collection[] }) 
             className="lg:row-span-2"
           >
             <CollectionCard
-              collection={visibleCollections[0]!}
+              collection={featuredCollection}
               aspectClass="aspect-[3/4] lg:h-full"
             />
           </motion.div>
@@ -86,6 +88,12 @@ export function CollectionsGrid({ collections }: { collections: Collection[] }) 
             </motion.div>
           ))}
         </div>
+        ) : (
+          <div className="border border-charcoal/10 bg-white px-6 py-12 text-center">
+            <p className="font-playfair text-2xl text-charcoal">Our catalogue is being prepared.</p>
+            <p className="mt-2 font-inter text-sm text-muted">Please check back shortly for our latest collections.</p>
+          </div>
+        )}
       </div>
     </section>
   );
