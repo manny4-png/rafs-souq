@@ -85,7 +85,7 @@ export function Navbar() {
                 {link.children ? (
                   <button
                     className={cn(
-                      "flex items-center gap-1 text-[0.72rem] tracking-luxury uppercase font-medium transition-colors duration-300",
+                      "flex items-center gap-1 text-[0.72rem] tracking-luxury uppercase font-bold transition-colors duration-300",
                       solidNav ? "text-muted hover:text-gold" : "text-charcoal/70 hover:text-[#a6514b]"
                     )}
                     onMouseEnter={() => setActiveDropdown(link.label)}
@@ -106,7 +106,7 @@ export function Navbar() {
                   <Link
                     href={link.href}
                     className={cn(
-                      "text-[0.72rem] tracking-luxury uppercase font-medium transition-colors duration-300",
+                      "text-[0.72rem] tracking-luxury uppercase font-bold transition-colors duration-300",
                       solidNav ? "text-muted hover:text-gold" : "text-charcoal/70 hover:text-[#a6514b]"
                     )}
                   >
@@ -294,7 +294,7 @@ export function Navbar() {
                 >
                   <Link
                     href={link.href}
-                    className="block font-playfair text-2xl font-medium text-charcoal hover:text-gold py-3 border-b border-charcoal/5 transition-colors"
+                    className="block font-playfair text-2xl font-bold text-charcoal hover:text-gold py-3 border-b border-charcoal/5 transition-colors"
                     onClick={() => setMobileOpen(false)}
                   >
                     {link.label}

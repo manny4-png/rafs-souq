@@ -1,6 +1,20 @@
 from django import forms
+from django.core.exceptions import ValidationError
+from django.utils.html import strip_tags
 
-from .models import Product
+from .models import Product, ProductVariant
+
+
+class ProductVariantAdminForm(forms.ModelForm):
+    size = forms.CharField(
+        required=False,
+        help_text="Enter any size used by this product, for example S, M, L, 32, 34, or 40.",
+        widget=forms.TextInput(attrs={"placeholder": "e.g. M or 34"}),
+    )
+
+    class Meta:
+        model = ProductVariant
+        fields = "__all__"
 
 
 class ProductAdminForm(forms.ModelForm):
@@ -38,3 +52,27 @@ class ProductAdminForm(forms.ModelForm):
             product.save()
             self.save_m2m()
         return product
+
+    def clean_description(self):
+        return self._clean_plain_text(self.cleaned_data["description"], "Description", 5000)
+
+    def clean_details_text(self):
+        value = self._clean_plain_text(self.cleaned_data["details_text"], "Product details", 4000)
+        if len([line for line in value.splitlines() if line.strip()]) > 50:
+            raise ValidationError("Enter no more than 50 product details.")
+        return value
+
+    def clean_tags_text(self):
+        value = self._clean_plain_text(self.cleaned_data["tags_text"], "Search tags", 1000)
+        if len([tag for tag in value.split(",") if tag.strip()]) > 30:
+            raise ValidationError("Enter no more than 30 search tags.")
+        return value
+
+    @staticmethod
+    def _clean_plain_text(value, label, max_length):
+        value = value.strip()
+        if strip_tags(value) != value:
+            raise ValidationError(f"{label} must not contain HTML.")
+        if len(value) > max_length:
+            raise ValidationError(f"{label} is too long.")
+        return value

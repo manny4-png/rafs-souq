@@ -9,7 +9,8 @@ from dotenv import load_dotenv
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(BASE_DIR / ".env")
-load_dotenv(BASE_DIR / ".env.smtp.local", override=True)
+if os.environ.get("DJANGO_DEBUG", "").strip().lower() in {"1", "true", "yes", "on"}:
+    load_dotenv(BASE_DIR / ".env.smtp.local", override=False)
 
 
 def env_bool(name: str, default: bool = False) -> bool:
@@ -25,11 +26,18 @@ def env_list(name: str, default: str = "") -> list[str]:
 
 
 SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "unsafe-dev-key-change-before-production")
-DEBUG = env_bool("DJANGO_DEBUG", default=True)
+DEBUG = env_bool("DJANGO_DEBUG", default=False)
 ALLOWED_HOSTS = env_list("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1")
+RENDER_EXTERNAL_HOSTNAME = os.environ.get("RENDER_EXTERNAL_HOSTNAME", "").strip()
+if RENDER_EXTERNAL_HOSTNAME and RENDER_EXTERNAL_HOSTNAME not in ALLOWED_HOSTS:
+    ALLOWED_HOSTS.append(RENDER_EXTERNAL_HOSTNAME)
 
-if not DEBUG and SECRET_KEY == "unsafe-dev-key-change-before-production":
-    raise RuntimeError("DJANGO_SECRET_KEY must be set in production.")
+INSECURE_SECRET_KEYS = {
+    "unsafe-dev-key-change-before-production",
+    "change-me-to-a-long-random-secret",
+}
+if not DEBUG and (SECRET_KEY in INSECURE_SECRET_KEYS or len(SECRET_KEY) < 50):
+    raise RuntimeError("DJANGO_SECRET_KEY must be a unique random value of at least 50 characters in production.")
 
 
 INSTALLED_APPS = [
@@ -45,12 +53,13 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     "corsheaders.middleware.CorsMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
-    "store.middleware.AdminLoginRateLimitMiddleware",
+    "store.middleware.RequestSecurityMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
@@ -79,6 +88,8 @@ WSGI_APPLICATION = "config.wsgi.application"
 def database_config() -> dict:
     database_url = os.environ.get("DATABASE_URL", "").strip()
     if not database_url:
+        if not DEBUG:
+            raise RuntimeError("DATABASE_URL must point to PostgreSQL in production.")
         return {
             "ENGINE": "django.db.backends.sqlite3",
             "NAME": BASE_DIR / "db.sqlite3",
@@ -116,6 +127,12 @@ USE_TZ = True
 
 STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
+STORAGES = {
+    "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+    "staticfiles": {
+        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+    },
+}
 MEDIA_URL = "media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
@@ -138,11 +155,31 @@ CSRF_COOKIE_SAMESITE = "Lax"
 SECURE_CONTENT_TYPE_NOSNIFF = True
 X_FRAME_OPTIONS = "DENY"
 SECURE_REFERRER_POLICY = "strict-origin-when-cross-origin"
+SECURE_CROSS_ORIGIN_OPENER_POLICY = "same-origin"
 SESSION_COOKIE_AGE = 30 * 60
 SESSION_EXPIRE_AT_BROWSER_CLOSE = True
 SESSION_SAVE_EVERY_REQUEST = True
 PASSWORD_RESET_TIMEOUT = 60 * 60
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+
+API_MAX_BODY_BYTES = int(os.environ.get("DJANGO_API_MAX_BODY_BYTES", str(64 * 1024)))
+API_READ_RATE_LIMIT = int(os.environ.get("DJANGO_API_READ_RATE_LIMIT", "120"))
+API_WRITE_RATE_LIMIT = int(os.environ.get("DJANGO_API_WRITE_RATE_LIMIT", "10"))
+ADMIN_RATE_LIMIT = int(os.environ.get("DJANGO_ADMIN_RATE_LIMIT", "120"))
+AUTH_RATE_LIMIT = 5
+
+CACHE_URL = os.environ.get("DJANGO_CACHE_URL", "").strip()
+if CACHE_URL:
+    CACHES = {
+        "default": {
+            "BACKEND": "django.core.cache.backends.redis.RedisCache",
+            "LOCATION": CACHE_URL,
+        }
+    }
+elif DEBUG:
+    CACHES = {"default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"}}
+else:
+    raise RuntimeError("DJANGO_CACHE_URL must point to a shared Redis cache in production.")
 
 EMAIL_BACKEND = os.environ.get(
     "DJANGO_EMAIL_BACKEND",
@@ -166,4 +203,5 @@ if not DEBUG:
 ADMIN_URL = os.environ.get("DJANGO_ADMIN_URL", "secure-admin/")
 FRONTEND_SITE_URL = os.environ.get("FRONTEND_SITE_URL", "http://localhost:3000")
 FILE_UPLOAD_MAX_MEMORY_SIZE = 5 * 1024 * 1024
-DATA_UPLOAD_MAX_MEMORY_SIZE = 5 * 1024 * 1024
+DATA_UPLOAD_MAX_MEMORY_SIZE = API_MAX_BODY_BYTES
+DATA_UPLOAD_MAX_NUMBER_FIELDS = 200

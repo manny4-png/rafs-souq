@@ -1,0 +1,55 @@
+services:
+  - type: web
+    name: rafs-souq-api
+    runtime: python
+    rootDir: backend
+    buildCommand: bash build.sh
+    preDeployCommand: python manage.py migrate
+    startCommand: gunicorn config.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --timeout 120
+    healthCheckPath: /api/health/
+    autoDeployTrigger: commit
+    envVars:
+      - key: DJANGO_DEBUG
+        value: "False"
+      - key: DJANGO_SECRET_KEY
+        generateValue: true
+      - key: DATABASE_URL
+        fromDatabase:
+          name: rafs-souq-db
+          property: connectionString
+      - key: DJANGO_CACHE_URL
+        fromService:
+          type: keyvalue
+          name: rafs-souq-cache
+          property: connectionString
+      - key: DJANGO_ALLOWED_HOSTS
+        sync: false
+      - key: DJANGO_CORS_ALLOWED_ORIGINS
+        sync: false
+      - key: DJANGO_CSRF_TRUSTED_ORIGINS
+        sync: false
+      - key: FRONTEND_SITE_URL
+        sync: false
+      - key: DJANGO_ADMIN_URL
+        sync: false
+      - key: DJANGO_EMAIL_HOST
+        sync: false
+      - key: DJANGO_EMAIL_HOST_USER
+        sync: false
+      - key: DJANGO_EMAIL_HOST_PASSWORD
+        sync: false
+      - key: CLOUDINARY_URL
+        sync: false
+      - key: DJANGO_DEFAULT_FROM_EMAIL
+        value: Raf's Souq <rafssouqgh@gmail.com>
+      - key: CLOUDINARY_URL
+        sync: false
+  - type: keyvalue
+    name: rafs-souq-cache
+    plan: free
+    ipAllowList: []
+    maxmemoryPolicy: allkeys-lru
+
+databases:
+  - name: rafs-souq-db
+    plan: free

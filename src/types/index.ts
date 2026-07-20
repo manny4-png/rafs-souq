@@ -9,6 +9,7 @@ export interface Product {
   badge?: "New" | "Sale" | "Bestseller" | "Exclusive" | "Limited";
   colors: ProductColor[];
   sizes?: string[];
+  variants?: ProductVariant[];
   rating: number;
   reviewCount: number;
   description: string;
@@ -24,11 +25,23 @@ export interface ProductColor {
   hex: string;
 }
 
+export interface ProductVariant {
+  backendId: string;
+  colorName: string;
+  colorHex: string;
+  size: string;
+  priceAdjustment: number;
+  stockQuantity: number;
+  inStock: boolean;
+}
+
 export interface CartItem {
+  key?: string;
   product: Product;
   quantity: number;
   selectedColor?: ProductColor;
   selectedSize?: string;
+  selectedVariantId?: string;
 }
 
 export interface Collection {

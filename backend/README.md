@@ -49,6 +49,9 @@ http://127.0.0.1:8000/api/
 - Set `DJANGO_CSRF_TRUSTED_ORIGINS` and `DJANGO_CORS_ALLOWED_ORIGINS` to the storefront domain
 - Change `DJANGO_ADMIN_URL` to a private path
 - Use PostgreSQL via `DATABASE_URL`
+- Use a shared Redis instance via `DJANGO_CACHE_URL` so rate limits work across every backend worker
+- Store secrets in the deployment platform's encrypted environment/secret manager, never in committed files
+- Generate a unique `DJANGO_SECRET_KEY` of at least 50 characters
 - Serve media files from trusted object storage or a protected media host
 - Keep admin accounts staff-only and use strong passwords
 - Put the backend behind HTTPS
@@ -76,3 +79,22 @@ NEXT_PUBLIC_API_URL=http://127.0.0.1:8000/api
 ```
 
 Before posting an order, fetch `/api/csrf/` with credentials and send the returned token as `X-CSRFToken`.
+# Deploying the API to Render
+
+The repository-root `render.yaml` defines the Django web service, PostgreSQL
+database, and shared Key Value cache. Create a Render Blueprint from that file,
+then provide the environment values marked `sync: false`:
+
+- `DJANGO_ALLOWED_HOSTS`: custom API hosts only, comma-separated and without a scheme. Render's own hostname is added automatically.
+- `DJANGO_CORS_ALLOWED_ORIGINS` and `DJANGO_CSRF_TRUSTED_ORIGINS`: the public frontend URL, including `https://`.
+- `FRONTEND_SITE_URL`: the public frontend URL.
+- `DJANGO_ADMIN_URL`: a private path ending in `/`, for example `management-7f3a/`.
+- SMTP host, username, and password for transactional email.
+
+Render generates `DJANGO_SECRET_KEY` and connects `DATABASE_URL` and
+`DJANGO_CACHE_URL` automatically. Never paste production values into `.env` or
+commit them to Git.
+
+Product media uploaded through Django must use durable object storage or a
+Render persistent disk before production. Render's normal service filesystem is
+ephemeral; static assets are handled separately by WhiteNoise.

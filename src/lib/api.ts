@@ -7,9 +7,13 @@ function apiBaseUrl() {
 }
 
 type BackendVariant = {
+  id: number | string;
   colorName?: string;
   colorHex?: string;
   size?: string;
+  priceAdjustment?: string;
+  stockQuantity: number;
+  inStock: boolean;
 };
 
 type BackendProduct = {
@@ -72,6 +76,16 @@ function productSizes(variants: BackendVariant[] | undefined): string[] {
 }
 
 function mapProduct(product: BackendProduct): Product {
+  const variants = (product.variants || []).map((variant) => ({
+    backendId: String(variant.id),
+    colorName: variant.colorName || "",
+    colorHex: variant.colorHex || "#C9A227",
+    size: variant.size || "",
+    priceAdjustment: Number(variant.priceAdjustment || 0),
+    stockQuantity: variant.stockQuantity,
+    inStock: variant.inStock,
+  }));
+
   return {
     id: product.slug,
     backendId: String(product.id),
@@ -87,6 +101,7 @@ function mapProduct(product: BackendProduct): Product {
     badge: product.badge || undefined,
     colors: productColors(product.variants),
     sizes: productSizes(product.variants),
+    variants,
     rating: 5,
     reviewCount: 0,
     description: product.description,

@@ -1,11 +1,11 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { motion } from "framer-motion";
 import { ChevronRight, Lock, Check, MapPin, Store, Truck } from "lucide-react";
-import { useCartStore } from "@/lib/store";
+import { cartItemKey, useCartStore } from "@/lib/store";
 import { formatPrice } from "@/lib/utils";
 import { toast } from "@/components/ui/Toast";
 import { BrandLogo } from "@/components/ui/BrandLogo";
@@ -16,33 +16,30 @@ const STEPS = ["Bag", "Delivery", "Payment", "Confirm"];
 const DELIVERY_FIELDS = [
   { id: "firstName", label: "First Name", type: "text", autoComplete: "given-name", placeholder: "Ama", colSpan: false },
   { id: "lastName", label: "Last Name", type: "text", autoComplete: "family-name", placeholder: "Mensah", colSpan: false },
-  { id: "email", label: "Email", type: "email", autoComplete: "email", placeholder: "email@example.com", colSpan: true },
-  { id: "phone", label: "Phone", type: "tel", autoComplete: "tel", placeholder: "+233 24 000 0000", colSpan: true },
   { id: "address", label: "Address", type: "text", autoComplete: "street-address", placeholder: "123 Independence Avenue", colSpan: true },
+  { id: "apartment", label: "Apartment, suite, etc. (optional)", type: "text", autoComplete: "address-line2", placeholder: "Apartment, suite, etc.", colSpan: true },
   { id: "city", label: "City", type: "text", autoComplete: "address-level2", placeholder: "Accra", colSpan: false },
+  { id: "postalCode", label: "Postal code (optional)", type: "text", autoComplete: "postal-code", placeholder: "GA-123-4567", colSpan: false },
+  { id: "phone", label: "Phone", type: "tel", autoComplete: "tel", placeholder: "+233 24 000 0000", colSpan: true },
 ] as const;
 
 type DeliveryFieldId = (typeof DELIVERY_FIELDS)[number]["id"];
 
 type FormState = Record<DeliveryFieldId, string> & {
+  email: string;
   country: string;
   deliveryArea: string;
 };
 
-const DELIVERY_ZONES = [
-  { fee: 28, areas: ["Klagon"] },
-  { fee: 35, areas: ["Ashaiman Central", "Sakumono"] },
-  { fee: 38, areas: ["Spintex"] },
-  { fee: 40, areas: ["Nungua", "East Legon", "Accra Mall", "Borteyman"] },
-  { fee: 42, areas: ["Teshie"] },
-  { fee: 45, areas: ["Ashaiman Outskirts", "East Legon Hills", "Osu", "Palace Mall", "Labadi", "Haatso", "37 Military", "School Junction", "Embassy Gardens", "Legon", "Tse Addo"] },
-  { fee: 50, areas: ["Dome", "Nima", "Pig Farm", "Madina", "Adenta", "Airport Area", "Kwabenya", "Accra Tudu", "Darkuman", "UPSA", "Lakeside", "Ministries"] },
-  { fee: 60, areas: ["Pantang"] },
-  { fee: 80, areas: ["Kasoa"] },
+const DELIVERY_METHODS = [
+  { id: "ashanti-region", name: "Ashanti Region (pay rider on delivery)", timing: "2 to 3 business days", detail: "GH₵50 doorstep delivery, paid to rider", fee: 0 },
+  { id: "tema-ashaiman-kasoa", name: "Kasoa / Tema / Ashaiman (pay rider on delivery)", timing: "1 to 2 business days", detail: "GH₵40 doorstep delivery, paid to rider", fee: 0 },
+  { id: "other-regions", name: "Other regions (pay rider on delivery)", timing: "1 to 3 business days", detail: "GH₵50 doorstep delivery, paid to rider", fee: 0 },
+  { id: "within-accra", name: "Within Accra (pay rider on delivery)", timing: "2 to 3 business days", detail: "GH₵35 doorstep delivery, paid to rider", fee: 0 },
 ] as const;
 
 const DELIVERY_FEES = new Map<string, number>(
-  DELIVERY_ZONES.flatMap((zone) => zone.areas.map((area) => [area, zone.fee] as const))
+  DELIVERY_METHODS.map((method) => [method.id, method.fee] as const)
 );
 
 const initialForm: FormState = {
@@ -51,7 +48,9 @@ const initialForm: FormState = {
   email: "",
   phone: "",
   address: "",
+  apartment: "",
   city: "",
+  postalCode: "",
   country: "GH",
   deliveryArea: "",
 };
@@ -61,16 +60,31 @@ export function CheckoutClient() {
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
   const [form, setForm] = useState<FormState>(initialForm);
   const [fulfillment, setFulfillment] = useState<"delivery" | "pickup">("delivery");
+  const [saveInformation, setSaveInformation] = useState(false);
   const [errors, setErrors] = useState<Partial<Record<keyof FormState, string>>>({});
   const { items, totalPrice, clearCart } = useCartStore();
   const total = typeof totalPrice === "function" ? totalPrice() : 0;
   const deliveryFee = fulfillment === "pickup" ? 0 : (DELIVERY_FEES.get(form.deliveryArea) ?? 0);
+  const selectedDeliveryMethod = DELIVERY_METHODS.find((method) => method.id === form.deliveryArea);
   const orderTotal = total + deliveryFee;
 
   const requiredDelivery = useMemo(
-    () => DELIVERY_FIELDS.map((field) => field.id).filter((field) => fulfillment === "delivery" || (field !== "address" && field !== "city")),
+    () => ["firstName", "lastName", "email", "phone", ...(fulfillment === "delivery" ? ["address", "city"] : [])] as (keyof FormState)[],
     [fulfillment]
   );
+
+  useEffect(() => {
+    try {
+      const saved = window.localStorage.getItem("rafs-souq-checkout-details");
+      if (saved) {
+        const details = JSON.parse(saved) as Partial<FormState>;
+        setForm((current) => ({ ...current, ...details, country: "GH", deliveryArea: "" }));
+        setSaveInformation(true);
+      }
+    } catch {
+      window.localStorage.removeItem("rafs-souq-checkout-details");
+    }
+  }, []);
 
   const setField = (field: keyof FormState, value: string) => {
     setForm((current) => ({ ...current, [field]: value }));
@@ -82,8 +96,11 @@ export function CheckoutClient() {
     requiredDelivery.forEach((field) => {
       if (!form[field].trim()) nextErrors[field] = "Required";
     });
-    if (form.email && !/^\S+@\S+\.\S+$/.test(form.email)) {
-      nextErrors.email = "Enter a valid email";
+    if (form.email && !/^\S+@\S+\.\S+$/.test(form.email) && !/^\+?[0-9][0-9 ()-]{6,24}$/.test(form.email)) {
+      nextErrors.email = "Enter a valid email address or phone number";
+    }
+    if (form.postalCode && !/^[A-Za-z0-9][A-Za-z0-9 -]{1,10}[A-Za-z0-9]$/.test(form.postalCode)) {
+      nextErrors.postalCode = "Enter a valid postal code for Ghana";
     }
     if (fulfillment === "delivery" && !form.deliveryArea) {
       nextErrors.deliveryArea = "Choose a delivery area";
@@ -102,6 +119,11 @@ export function CheckoutClient() {
       return;
     }
     if (step === 2) {
+      if (saveInformation) {
+        window.localStorage.setItem("rafs-souq-checkout-details", JSON.stringify({ ...form, deliveryArea: "" }));
+      } else {
+        window.localStorage.removeItem("rafs-souq-checkout-details");
+      }
       setStep(3);
       return;
     }
@@ -180,7 +202,7 @@ export function CheckoutClient() {
                 <h1 id="checkout-step-heading" className="font-playfair text-xl text-charcoal mb-6">Your Bag</h1>
                 <div className="space-y-4">
                   {items.map((item) => (
-                    <div key={item.product.id} className="flex gap-4 pb-4 border-b border-charcoal/6">
+                    <div key={cartItemKey(item)} className="flex gap-4 pb-4 border-b border-charcoal/6">
                       <div className="w-16 h-20 bg-sand overflow-hidden flex-shrink-0">
                         {item.product.images[0] && (
                           <Image src={item.product.images[0]} alt={item.product.name} width={64} height={80} className="w-full h-full object-cover" />
@@ -188,6 +210,11 @@ export function CheckoutClient() {
                       </div>
                       <div className="flex-1">
                         <p className="font-playfair text-sm text-charcoal">{item.product.name}</p>
+                        {(item.selectedColor || item.selectedSize) && (
+                          <p className="text-xs text-muted font-inter mt-0.5">
+                            {[item.selectedColor?.name, item.selectedSize].filter(Boolean).join(" · ")}
+                          </p>
+                        )}
                         <p className="text-xs text-muted font-inter mt-0.5">Qty: {item.quantity}</p>
                         <p className="text-sm font-medium text-charcoal mt-1">{formatPrice(item.product.price * item.quantity)}</p>
                       </div>
@@ -219,54 +246,82 @@ export function CheckoutClient() {
                   </button>
                 </div>
 
-                <h2 className="font-playfair text-lg text-charcoal mb-4">Contact details</h2>
+                <h2 className="font-playfair text-lg text-charcoal mb-4">Contact</h2>
+                <div>
+                  <label htmlFor="email" className="block text-[0.7rem] tracking-[0.14em] uppercase font-inter font-medium text-charcoal mb-1.5">Email or phone</label>
+                  <input
+                    id="email"
+                    type="text"
+                    autoComplete="email tel"
+                    value={form.email}
+                    onChange={(event) => setField("email", event.target.value)}
+                    placeholder="Email or mobile phone number"
+                    aria-invalid={Boolean(errors.email)}
+                    aria-describedby={errors.email ? "email-error" : undefined}
+                    className="w-full rounded-lg border border-charcoal/15 px-4 py-3 text-[0.88rem] font-inter outline-none focus:border-gold transition-colors"
+                  />
+                  {errors.email && <p id="email-error" className="mt-1 text-xs text-red-600 font-inter">{errors.email}</p>}
+                </div>
+
+                <h2 className="font-playfair text-lg text-charcoal mt-8 mb-4">Delivery</h2>
+                {fulfillment === "delivery" && (
+                  <div className="mb-4">
+                    <label htmlFor="country" className="block text-[0.7rem] tracking-[0.14em] uppercase font-inter font-medium text-charcoal mb-1.5">Country / Region</label>
+                    <select id="country" value={form.country} onChange={(event) => setField("country", event.target.value)} className="w-full rounded-lg border border-charcoal/15 bg-white px-4 py-3 text-[0.88rem] font-inter outline-none focus:border-gold">
+                      <option value="GH">Ghana</option>
+                    </select>
+                  </div>
+                )}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {DELIVERY_FIELDS.filter(({ id }) => fulfillment === "delivery" || (id !== "address" && id !== "city")).map(({ id, label, placeholder, colSpan, type, autoComplete }) => (
+                  {DELIVERY_FIELDS.filter(({ id }) => fulfillment === "delivery" || ["firstName", "lastName", "phone"].includes(id)).map(({ id, label, placeholder, colSpan, type, autoComplete }) => (
                     <div key={id} className={colSpan ? "sm:col-span-2" : ""}>
-                      <label htmlFor={id} className="block text-[0.7rem] tracking-[0.14em] uppercase font-inter font-medium text-charcoal mb-1.5">
-                        {label}
-                      </label>
+                      <label htmlFor={id} className="block text-[0.7rem] tracking-[0.14em] uppercase font-inter font-medium text-charcoal mb-1.5">{label}</label>
                       <input
                         id={id}
                         type={type}
                         autoComplete={autoComplete}
                         value={form[id]}
-                        onChange={(e) => setField(id, e.target.value)}
+                        onChange={(event) => setField(id, event.target.value)}
                         placeholder={placeholder}
                         aria-invalid={Boolean(errors[id])}
                         aria-describedby={errors[id] ? `${id}-error` : undefined}
-                        className="w-full border border-charcoal/15 px-4 py-3 text-[0.88rem] font-inter outline-none focus:border-gold transition-colors"
+                        className="w-full rounded-lg border border-charcoal/15 px-4 py-3 text-[0.88rem] font-inter outline-none focus:border-gold transition-colors"
                       />
-                      {errors[id] && (
-                        <p id={`${id}-error`} className="mt-1 text-xs text-red-600 font-inter">
-                          {errors[id]}
-                        </p>
-                      )}
+                      {errors[id] && <p id={`${id}-error`} className="mt-1 text-xs text-red-600 font-inter">{errors[id]}</p>}
                     </div>
                   ))}
                 </div>
 
+                <label className="mt-4 flex cursor-pointer items-center gap-3 text-sm text-charcoal font-inter">
+                  <input type="checkbox" checked={saveInformation} onChange={(event) => setSaveInformation(event.target.checked)} className="h-4 w-4 accent-[#a6514b]" />
+                  Save this information for next time
+                </label>
+
                 {fulfillment === "delivery" ? (
-                  <div className="mt-5">
-                    <label htmlFor="deliveryArea" className="block text-[0.7rem] tracking-[0.14em] uppercase font-inter font-medium text-charcoal mb-1.5">Delivery area</label>
-                    <select
-                      id="deliveryArea"
-                      value={form.deliveryArea}
-                      onChange={(event) => setField("deliveryArea", event.target.value)}
-                      aria-invalid={Boolean(errors.deliveryArea)}
-                      className="w-full border border-charcoal/15 bg-white px-4 py-3 text-[0.88rem] font-inter outline-none focus:border-gold transition-colors"
-                    >
-                      <option value="">Select your area</option>
-                      {DELIVERY_ZONES.map((zone) => (
-                        <optgroup key={zone.fee} label={`${formatPrice(zone.fee)} delivery`}>
-                          {zone.areas.map((area) => <option key={area} value={area}>{area}</option>)}
-                        </optgroup>
-                      ))}
-                    </select>
+                  <div className="mt-8">
+                    <h2 className="font-playfair text-lg text-charcoal mb-4">Shipping method</h2>
+                    <div className="overflow-hidden rounded-xl border border-charcoal/15">
+                      {DELIVERY_METHODS.map((method) => {
+                        const selected = form.deliveryArea === method.id;
+                        return (
+                          <label key={method.id} className={`flex cursor-pointer gap-3 border-b border-charcoal/10 p-4 last:border-b-0 ${selected ? "bg-[#fdf3ef] ring-1 ring-inset ring-[#a6514b]" : "bg-white hover:bg-cream/60"}`}>
+                            <input type="radio" name="deliveryArea" value={method.id} checked={selected} onChange={() => setField("deliveryArea", method.id)} className="mt-1 h-4 w-4 flex-shrink-0 accent-[#a6514b]" />
+                            <span className="min-w-0 flex-1 font-inter">
+                              <span className="flex items-start justify-between gap-3">
+                                <strong className="text-sm text-charcoal">{method.name}</strong>
+                                <strong className="whitespace-nowrap text-sm text-charcoal">Free</strong>
+                              </span>
+                              <span className="mt-1 block text-xs text-muted">{method.timing}</span>
+                              <span className="mt-0.5 block text-xs text-muted">{method.detail}</span>
+                            </span>
+                          </label>
+                        );
+                      })}
+                    </div>
                     {errors.deliveryArea && <p className="mt-1 text-xs text-red-600 font-inter">{errors.deliveryArea}</p>}
                     <div className="mt-4 flex gap-3 bg-cream border border-gold/20 p-4">
                       <MapPin size={17} className="mt-0.5 flex-shrink-0 text-gold" />
-                      <p className="text-xs leading-relaxed text-muted font-inter">Can&apos;t find your area? Contact us on WhatsApp before placing your order for a delivery quote.</p>
+                      <p className="text-xs leading-relaxed text-muted font-inter">The rider fee is paid separately when your order arrives. Please contact us on WhatsApp if you need help choosing your region.</p>
                     </div>
                   </div>
                 ) : (
@@ -314,8 +369,8 @@ export function CheckoutClient() {
             <h2 id="order-summary-heading" className="font-playfair text-lg text-charcoal mb-5">Order Summary</h2>
             <div className="space-y-3 mb-5">
               {items.map((item) => (
-                <div key={item.product.id} className="flex justify-between gap-3 text-[0.85rem] font-inter">
-                  <span className="text-muted">{item.product.name} <span className="text-charcoal/50">x{item.quantity}</span></span>
+                <div key={cartItemKey(item)} className="flex justify-between gap-3 text-[0.85rem] font-inter">
+                  <span className="text-muted">{item.product.name}{(item.selectedColor || item.selectedSize) && <small className="block">{[item.selectedColor?.name, item.selectedSize].filter(Boolean).join(" · ")}</small>} <span className="text-charcoal/50">x{item.quantity}</span></span>
                   <span className="text-charcoal font-medium">{formatPrice(item.product.price * item.quantity)}</span>
                 </div>
               ))}
@@ -327,7 +382,7 @@ export function CheckoutClient() {
               </div>
               <div className="flex justify-between text-[0.85rem] font-inter">
                 <span className="text-muted">Delivery</span>
-                <span className="text-gold">{fulfillment === "pickup" ? "Store pickup · Free" : form.deliveryArea ? formatPrice(deliveryFee) : "Select area"}</span>
+                <span className="text-gold text-right">{fulfillment === "pickup" ? "Store pickup · Free" : selectedDeliveryMethod ? "Free · pay rider on delivery" : "Select shipping method"}</span>
               </div>
               <div className="border-t border-charcoal/8 pt-3 flex justify-between">
                 <span className="font-playfair text-base text-charcoal">Total</span>

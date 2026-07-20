@@ -2,10 +2,19 @@ from __future__ import annotations
 
 from decimal import Decimal
 
+from django.core.exceptions import ValidationError
 from django.core.validators import MinValueValidator
 from django.db import models
 from django.utils import timezone
 from django.utils.text import slugify
+
+
+MAX_IMAGE_BYTES = 5 * 1024 * 1024
+
+
+def validate_image_size(image):
+    if image.size > MAX_IMAGE_BYTES:
+        raise ValidationError("Images must be 5 MB or smaller.")
 
 
 class TimeStampedModel(models.Model):
@@ -20,7 +29,7 @@ class Category(TimeStampedModel):
     name = models.CharField(max_length=120, unique=True)
     slug = models.SlugField(max_length=140, unique=True, blank=True)
     description = models.TextField(blank=True)
-    image = models.ImageField(upload_to="categories/", blank=True)
+    image = models.ImageField(upload_to="categories/", blank=True, validators=[validate_image_size])
     is_active = models.BooleanField(default=True)
     sort_order = models.PositiveIntegerField(default=0)
 
@@ -67,7 +76,7 @@ class Product(TimeStampedModel):
         validators=[MinValueValidator(Decimal("0.00"))],
     )
     currency = models.CharField(max_length=3, default="GHS")
-    main_image = models.ImageField(upload_to="products/main/", blank=True)
+    main_image = models.ImageField(upload_to="products/main/", blank=True, validators=[validate_image_size])
     badge = models.CharField(max_length=24, choices=Badge.choices, blank=True, default=Badge.NONE)
     status = models.CharField(max_length=24, choices=Status.choices, default=Status.DRAFT)
     is_featured = models.BooleanField(default=False)
@@ -105,7 +114,7 @@ class Product(TimeStampedModel):
 
 class ProductImage(TimeStampedModel):
     product = models.ForeignKey(Product, related_name="images", on_delete=models.CASCADE)
-    image = models.ImageField(upload_to="products/gallery/")
+    image = models.ImageField(upload_to="products/gallery/", validators=[validate_image_size])
     alt_text = models.CharField(max_length=180, blank=True)
     sort_order = models.PositiveIntegerField(default=0)
 
@@ -157,7 +166,7 @@ class InventoryMovement(TimeStampedModel):
 
 
 class Customer(TimeStampedModel):
-    email = models.EmailField(unique=True)
+    email = models.EmailField(unique=True, null=True, blank=True)
     first_name = models.CharField(max_length=80)
     last_name = models.CharField(max_length=80)
     phone = models.CharField(max_length=40, blank=True)
@@ -166,7 +175,7 @@ class Customer(TimeStampedModel):
         ordering = ["email"]
 
     def __str__(self) -> str:
-        return self.email
+        return self.email or self.phone
 
 
 class Order(TimeStampedModel):
@@ -186,7 +195,7 @@ class Order(TimeStampedModel):
 
     order_number = models.CharField(max_length=32, unique=True, editable=False)
     customer = models.ForeignKey(Customer, related_name="orders", null=True, blank=True, on_delete=models.SET_NULL)
-    email = models.EmailField()
+    email = models.EmailField(blank=True)
     phone = models.CharField(max_length=40, blank=True)
     first_name = models.CharField(max_length=80)
     last_name = models.CharField(max_length=80)
@@ -227,6 +236,8 @@ class OrderItem(TimeStampedModel):
     variant = models.ForeignKey(ProductVariant, related_name="order_items", null=True, blank=True, on_delete=models.SET_NULL)
     product_name = models.CharField(max_length=180)
     sku = models.CharField(max_length=80)
+    selected_color = models.CharField(max_length=80, blank=True)
+    selected_size = models.CharField(max_length=50, blank=True)
     quantity = models.PositiveIntegerField(validators=[MinValueValidator(1)])
     unit_price = models.DecimalField(max_digits=10, decimal_places=2)
     line_total = models.DecimalField(max_digits=10, decimal_places=2)

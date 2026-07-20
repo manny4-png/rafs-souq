@@ -4,6 +4,7 @@ import { BestSellers } from "@/components/sections/BestSellers";
 import { BrandStory } from "@/components/sections/BrandStory";
 import { InstagramShowcase } from "@/components/sections/InstagramShowcase";
 import { Newsletter } from "@/components/sections/Newsletter";
+import { FaqSection } from "@/components/sections/FaqSection";
 import { Footer } from "@/components/layout/Footer";
 import { getCategories, getProducts } from "@/lib/api";
 
@@ -19,6 +20,7 @@ export default async function HomePage() {
       <BestSellers products={products} />
       <BrandStory />
       <InstagramShowcase />
+      <FaqSection />
       <Newsletter />
       <Footer />
     </>

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { Heart, ShoppingBag } from "lucide-react";
 import type { Product } from "@/types";
@@ -17,6 +18,7 @@ interface ProductCardProps {
 }
 
 export function ProductCard({ product, className }: ProductCardProps) {
+  const router = useRouter();
   const [hovering, setHovering] = useState(false);
   const addToCart = useCartStore((s) => s.addItem);
   const openCart = useCartStore((s) => s.openCart);
@@ -25,6 +27,11 @@ export function ProductCard({ product, className }: ProductCardProps) {
 
   const handleAddToCart = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.stopPropagation();
+    if (product.variants?.length) {
+      toast.show("Choose your colour and size first", "info");
+      router.push(`/product/${product.id}`);
+      return;
+    }
     addToCart(product);
     toast.show(`${product.name} added to cart`);
     setTimeout(() => openCart(), 400);
@@ -118,7 +125,7 @@ export function ProductCard({ product, className }: ProductCardProps) {
             aria-label={`Add ${product.name} to cart`}
           >
             <ShoppingBag size={12} />
-            {product.inStock ? "Add to Cart" : "Sold Out"}
+            {product.inStock ? (product.variants?.length ? "Choose Options" : "Add to Cart") : "Sold Out"}
           </button>
         </div>
 

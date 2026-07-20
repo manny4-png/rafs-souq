@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { serializeJsonLd } from "@/lib/json-ld";
 import "./globals.css";
 import { Navbar } from "@/components/layout/Navbar";
 import { CartDrawer } from "@/components/layout/CartDrawer";
@@ -87,11 +88,11 @@ export default function RootLayout({
       <body className="bg-cream text-charcoal antialiased overflow-x-hidden">
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(siteJsonLd) }}
+          dangerouslySetInnerHTML={{ __html: serializeJsonLd(siteJsonLd) }}
         />
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd) }}
+          dangerouslySetInnerHTML={{ __html: serializeJsonLd(websiteJsonLd) }}
         />
         <Navbar />
         <main>{children}</main>

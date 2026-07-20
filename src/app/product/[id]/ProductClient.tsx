@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { motion } from "framer-motion";
@@ -29,9 +29,35 @@ export function ProductClient({
   const openCart = useCartStore((s) => s.openCart);
   const { toggle: toggleWishlist, hasItem } = useWishlistStore();
   const wishlisted = hasItem(product.id);
+  const variants = product.variants || [];
+  const availableSizes = useMemo(() => {
+    if (!variants.length) return product.sizes || [];
+    return Array.from(new Set(
+      variants
+        .filter((variant) => variant.inStock && (!variant.colorName || variant.colorName === selectedColor.name))
+        .map((variant) => variant.size)
+        .filter(Boolean)
+    ));
+  }, [product.sizes, variants, selectedColor.name]);
+  const selectedVariant = variants.find(
+    (variant) =>
+      variant.inStock &&
+      (!variant.colorName || variant.colorName === selectedColor.name) &&
+      (!variant.size || variant.size === selectedSize)
+  );
+  const selectedPrice = product.price + (selectedVariant?.priceAdjustment || 0);
 
   const handleAddToCart = () => {
-    addToCart(product, selectedColor, selectedSize);
+    if (variants.length && !selectedVariant) {
+      toast.show("Please choose an available colour and size", "info");
+      return;
+    }
+    addToCart(
+      { ...product, price: selectedPrice },
+      selectedColor,
+      selectedSize,
+      selectedVariant?.backendId
+    );
     toast.show(`${product.name} added to cart`);
     setTimeout(() => openCart(), 400);
   };
@@ -192,7 +218,7 @@ export function ProductClient({
               {/* Price */}
               <div className="flex items-baseline gap-3 mb-6">
                 <span className="font-playfair text-2xl font-semibold text-charcoal">
-                  {formatPrice(product.price)}
+                  {formatPrice(selectedPrice)}
                 </span>
                 {product.originalPrice && (
                   <span className="text-muted line-through font-inter">
@@ -221,7 +247,13 @@ export function ProductClient({
                     <button
                       type="button"
                       key={color.hex}
-                      onClick={() => setSelectedColor(color)}
+                      onClick={() => {
+                        setSelectedColor(color);
+                        const firstSize = variants.find(
+                          (variant) => variant.inStock && (!variant.colorName || variant.colorName === color.name)
+                        )?.size;
+                        if (firstSize) setSelectedSize(firstSize);
+                      }}
                       title={color.name}
                       aria-label={`Select colour: ${color.name}`}
                       className={cn(
@@ -235,7 +267,7 @@ export function ProductClient({
               </div>
 
               {/* Sizes */}
-              {product.sizes && product.sizes.length > 1 && (
+              {availableSizes.length > 0 && (
                 <div className="mb-6">
                   <div className="flex items-center justify-between mb-3">
                     <span className="text-[0.72rem] tracking-[0.16em] uppercase font-inter font-medium text-charcoal">
@@ -244,7 +276,7 @@ export function ProductClient({
                     <button type="button" className="text-[0.72rem] text-gold underline underline-offset-2 font-inter">Size Guide</button>
                   </div>
                   <div className="flex gap-2 flex-wrap">
-                    {product.sizes.map((size) => (
+                    {availableSizes.map((size) => (
                       <button
                         type="button"
                         key={size}
@@ -268,7 +300,7 @@ export function ProductClient({
                 <button
                   type="button"
                   onClick={handleAddToCart}
-                  disabled={!product.inStock}
+                  disabled={!product.inStock || (variants.length > 0 && !selectedVariant)}
                   className="flex-1 flex items-center justify-center gap-2 bg-charcoal text-white py-4 text-[0.78rem] tracking-luxury uppercase font-inter font-medium hover:bg-gold disabled:bg-muted disabled:cursor-not-allowed transition-all duration-300 btn-magnetic"
                   aria-label={`Add ${product.name} to cart`}
                 >

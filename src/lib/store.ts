@@ -6,15 +6,19 @@ import type { CartItem, Product, ProductColor } from "@/types";
 interface CartStore {
   items: CartItem[];
   isOpen: boolean;
-  addItem: (product: Product, color?: ProductColor, size?: string) => void;
-  removeItem: (productId: string) => void;
-  updateQuantity: (productId: string, quantity: number) => void;
+  addItem: (product: Product, color?: ProductColor, size?: string, variantId?: string) => void;
+  removeItem: (itemKey: string) => void;
+  updateQuantity: (itemKey: string, quantity: number) => void;
   clearCart: () => void;
   openCart: () => void;
   closeCart: () => void;
   toggleCart: () => void;
   totalItems: () => number;
   totalPrice: () => number;
+}
+
+export function cartItemKey(item: CartItem): string {
+  return item.key || `${item.product.id}:${item.selectedVariantId || "default"}:${item.selectedColor?.name || ""}:${item.selectedSize || ""}`;
 }
 
 interface WishlistStore {
@@ -30,12 +34,13 @@ export const useCartStore = create<CartStore>()(
     (set, get) => ({
       items: [],
       isOpen: false,
-      addItem: (product, color, size) => {
-        const existing = get().items.find((i) => i.product.id === product.id);
+      addItem: (product, color, size, variantId) => {
+        const key = `${product.id}:${variantId || "default"}:${color?.name || ""}:${size || ""}`;
+        const existing = get().items.find((item) => cartItemKey(item) === key);
         if (existing) {
           set((s) => ({
             items: s.items.map((i) =>
-              i.product.id === product.id
+              cartItemKey(i) === key
                 ? { ...i, quantity: i.quantity + 1 }
                 : i
             ),
@@ -44,21 +49,21 @@ export const useCartStore = create<CartStore>()(
           set((s) => ({
             items: [
               ...s.items,
-              { product, quantity: 1, selectedColor: color, selectedSize: size },
+              { key, product, quantity: 1, selectedColor: color, selectedSize: size, selectedVariantId: variantId },
             ],
           }));
         }
       },
-      removeItem: (productId) =>
-        set((s) => ({ items: s.items.filter((i) => i.product.id !== productId) })),
-      updateQuantity: (productId, quantity) => {
+      removeItem: (itemKey) =>
+        set((s) => ({ items: s.items.filter((item) => cartItemKey(item) !== itemKey) })),
+      updateQuantity: (itemKey, quantity) => {
         if (quantity <= 0) {
-          get().removeItem(productId);
+          get().removeItem(itemKey);
           return;
         }
         set((s) => ({
           items: s.items.map((i) =>
-            i.product.id === productId ? { ...i, quantity } : i
+            cartItemKey(i) === itemKey ? { ...i, quantity } : i
           ),
         }));
       },

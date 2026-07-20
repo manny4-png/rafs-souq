@@ -12,7 +12,9 @@ type CheckoutForm = {
   email: string;
   phone: string;
   address: string;
+  apartment: string;
   city: string;
+  postalCode: string;
   country: string;
   deliveryArea: string;
   fulfillment: "delivery" | "pickup";
@@ -50,15 +52,18 @@ export async function createOrder(form: CheckoutForm, items: CartItem[]) {
     body: JSON.stringify({
       firstName: form.firstName,
       lastName: form.lastName,
-      email: form.email,
+      contact: form.email,
       phone: form.phone,
       address: form.address,
+      apartment: form.apartment,
       city: form.city,
+      postalCode: form.postalCode,
       country: form.country,
       deliveryArea: form.deliveryArea,
       fulfillment: form.fulfillment,
       items: items.map((item) => ({
         productId: item.product.backendId,
+        variantId: item.selectedVariantId ? Number(item.selectedVariantId) : null,
         quantity: item.quantity,
       })),
     }),

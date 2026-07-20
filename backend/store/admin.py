@@ -3,7 +3,7 @@ from django.conf import settings
 from django.db.models import F
 from django.utils.html import format_html
 
-from .forms import ProductAdminForm
+from .forms import ProductAdminForm, ProductVariantAdminForm
 
 from .models import (
     Category,
@@ -40,7 +40,8 @@ class ProductImageInline(admin.TabularInline):
 
 class ProductVariantInline(admin.TabularInline):
     model = ProductVariant
-    extra = 1
+    form = ProductVariantAdminForm
+    extra = 3
     fields = ["sku", "color_name", "size", "price_adjustment", "stock_quantity", "is_active"]
     verbose_name = "Colour / size option"
     verbose_name_plural = "Colour and size options"
@@ -136,6 +137,7 @@ class ProductAdmin(admin.ModelAdmin):
 
 @admin.register(ProductVariant)
 class ProductVariantAdmin(admin.ModelAdmin):
+    form = ProductVariantAdminForm
     list_display = ["sku", "product", "color_name", "size", "stock_quantity", "is_active"]
     list_filter = ["is_active", "product__category"]
     search_fields = ["sku", "product__name", "color_name", "size"]
@@ -163,7 +165,7 @@ class InventoryMovementAdmin(admin.ModelAdmin):
 class OrderItemInline(admin.TabularInline):
     model = OrderItem
     extra = 0
-    readonly_fields = ["product", "variant", "product_name", "sku", "quantity", "unit_price", "line_total"]
+    readonly_fields = ["product", "variant", "product_name", "sku", "selected_color", "selected_size", "quantity", "unit_price", "line_total"]
     can_delete = False
 
 

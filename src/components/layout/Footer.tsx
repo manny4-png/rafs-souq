@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Instagram, Facebook, Youtube, Twitter } from "lucide-react";
+import { Instagram } from "lucide-react";
 import { BrandLogo } from "@/components/ui/BrandLogo";
 
 const footerLinks = {
@@ -10,13 +10,15 @@ const footerLinks = {
     { label: "Ready to Wear Dresses", href: "/shop?category=ready-to-wear" },
   ],
   Help: [
+    { label: "Turban Cap FAQs", href: "/faq" },
     { label: "Contact Us", href: "/contact" },
     { label: "Shop", href: "/shop" },
     { label: "Collections", href: "/collections" },
     { label: "Wishlist", href: "/wishlist" },
   ],
   Company: [
-    { label: "Contact", href: "/contact" },
+    { label: "Terms & Conditions", href: "/terms" },
+    { label: "Privacy Policy", href: "/privacy" },
   ],
 };
 
@@ -81,6 +83,10 @@ export function Footer() {
           <p className="text-[0.77rem] text-white/30 font-inter">
             © {new Date().getFullYear()} Raf&apos;s Souq. All rights reserved.
           </p>
+          <div className="flex gap-5 font-inter text-[0.72rem] text-white/35">
+            <Link href="/terms" className="hover:text-gold">Terms</Link>
+            <Link href="/privacy" className="hover:text-gold">Privacy</Link>
+          </div>
         </div>
       </div>
     </footer>

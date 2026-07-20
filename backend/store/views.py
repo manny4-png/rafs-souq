@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import re
 from decimal import Decimal
 
 from django.db import transaction
@@ -10,24 +11,23 @@ from django.views.decorators.csrf import csrf_protect
 from django.views.decorators.http import require_GET, require_POST
 
 from .models import Category, Customer, Order, OrderItem, Product, ProductVariant, StoreSetting
+from .validation import PayloadValidationError, clean_order_payload
 
 
 DELIVERY_FEES = {
-    "Klagon": Decimal("28.00"),
-    "Ashaiman Central": Decimal("35.00"), "Sakumono": Decimal("35.00"),
-    "Spintex": Decimal("38.00"),
-    "Nungua": Decimal("40.00"), "East Legon": Decimal("40.00"), "Accra Mall": Decimal("40.00"), "Borteyman": Decimal("40.00"),
-    "Teshie": Decimal("42.00"),
-    "Ashaiman Outskirts": Decimal("45.00"), "East Legon Hills": Decimal("45.00"), "Osu": Decimal("45.00"),
-    "Palace Mall": Decimal("45.00"), "Labadi": Decimal("45.00"), "Haatso": Decimal("45.00"),
-    "37 Military": Decimal("45.00"), "School Junction": Decimal("45.00"), "Embassy Gardens": Decimal("45.00"),
-    "Legon": Decimal("45.00"), "Tse Addo": Decimal("45.00"),
-    "Dome": Decimal("50.00"), "Nima": Decimal("50.00"), "Pig Farm": Decimal("50.00"), "Madina": Decimal("50.00"),
-    "Adenta": Decimal("50.00"), "Airport Area": Decimal("50.00"), "Kwabenya": Decimal("50.00"),
-    "Accra Tudu": Decimal("50.00"), "Darkuman": Decimal("50.00"), "UPSA": Decimal("50.00"),
-    "Lakeside": Decimal("50.00"), "Ministries": Decimal("50.00"),
-    "Pantang": Decimal("60.00"), "Kasoa": Decimal("80.00"),
+    "ashanti-region": Decimal("0.00"),
+    "tema-ashaiman-kasoa": Decimal("0.00"),
+    "other-regions": Decimal("0.00"),
+    "within-accra": Decimal("0.00"),
 }
+
+DELIVERY_METHOD_NAMES = {
+    "ashanti-region": "Ashanti Region — GH₵50 paid to rider",
+    "tema-ashaiman-kasoa": "Kasoa / Tema / Ashaiman — GH₵40 paid to rider",
+    "other-regions": "Other regions — GH₵50 paid to rider",
+    "within-accra": "Within Accra — GH₵35 paid to rider",
+}
+SLUG_PATTERN = re.compile(r"^[a-z0-9-]{1,140}$")
 
 
 def absolute_media_url(request: HttpRequest, file_field) -> str | None:
@@ -141,14 +141,20 @@ def products(request: HttpRequest) -> JsonResponse:
 
     category = request.GET.get("category")
     if category:
+        if not SLUG_PATTERN.fullmatch(category):
+            return JsonResponse({"error": "Invalid category"}, status=400)
         queryset = queryset.filter(category__slug=category)
 
     featured = request.GET.get("featured")
+    if featured and featured not in {"0", "1", "true", "false", "True", "False"}:
+        return JsonResponse({"error": "Invalid featured filter"}, status=400)
     if featured in {"1", "true", "True"}:
         queryset = queryset.filter(is_featured=True)
 
     search = request.GET.get("search", "").strip()
     if search:
+        if len(search) > 100 or any(ord(character) < 32 for character in search):
+            return JsonResponse({"error": "Invalid search query"}, status=400)
         queryset = queryset.filter(name__icontains=search) | queryset.filter(description__icontains=search)
 
     return JsonResponse({"products": [serialize_product(request, product) for product in queryset.distinct()]})
@@ -172,47 +178,49 @@ def get_store_settings() -> StoreSetting:
     settings = StoreSetting.objects.first()
     if settings:
         return settings
-    return StoreSetting.objects.create()
+    return StoreSetting()
 
 
 @require_POST
 @csrf_protect
 def create_order(request: HttpRequest) -> JsonResponse:
     try:
-        payload = json.loads(request.body.decode("utf-8"))
-    except json.JSONDecodeError:
-        return JsonResponse({"error": "Invalid JSON payload"}, status=400)
+        raw_payload = json.loads(
+            request.body.decode("utf-8"),
+            parse_constant=lambda value: (_ for _ in ()).throw(ValueError(f"Invalid number: {value}")),
+        )
+        payload = clean_order_payload(raw_payload)
+    except (json.JSONDecodeError, UnicodeDecodeError, PayloadValidationError, ValueError) as exc:
+        message = str(exc) if isinstance(exc, PayloadValidationError) else "Invalid JSON payload"
+        return JsonResponse({"error": message}, status=400)
 
-    fulfillment = payload.get("fulfillment", "delivery")
-    required_fields = ["firstName", "lastName", "email", "phone", "items"]
-    if fulfillment == "delivery":
-        required_fields.extend(["address", "city", "deliveryArea"])
-    missing = [field for field in required_fields if not payload.get(field)]
-    if missing:
-        return JsonResponse({"error": "Missing required fields", "fields": missing}, status=400)
-
-    if not isinstance(payload["items"], list) or not payload["items"]:
-        return JsonResponse({"error": "Order must include at least one item"}, status=400)
-
-    if fulfillment not in {"delivery", "pickup"}:
-        return JsonResponse({"error": "Invalid fulfillment method"}, status=400)
-
-    delivery_area = payload.get("deliveryArea", "").strip()
+    fulfillment = payload["fulfillment"]
+    delivery_area = payload["deliveryArea"]
     if fulfillment == "delivery" and delivery_area not in DELIVERY_FEES:
         return JsonResponse({"error": "Please select a valid delivery area"}, status=400)
+
+    if not payload["items"]:
+        return JsonResponse({"error": "Invalid JSON payload"}, status=400)
 
     store_settings = get_store_settings()
 
     try:
         with transaction.atomic():
-            customer, _ = Customer.objects.update_or_create(
-                email=payload["email"].strip().lower(),
-                defaults={
-                    "first_name": payload["firstName"].strip(),
-                    "last_name": payload["lastName"].strip(),
-                    "phone": payload["phone"].strip(),
-                },
-            )
+            customer_defaults = {
+                "first_name": payload["firstName"],
+                "last_name": payload["lastName"],
+                "phone": payload["phone"],
+            }
+            if payload["email"]:
+                customer, _ = Customer.objects.update_or_create(email=payload["email"], defaults=customer_defaults)
+            else:
+                customer = Customer.objects.filter(email__isnull=True, phone=payload["phone"]).first()
+                if customer:
+                    for field, value in customer_defaults.items():
+                        setattr(customer, field, value)
+                    customer.save(update_fields=[*customer_defaults, "updated_at"])
+                else:
+                    customer = Customer.objects.create(email=None, **customer_defaults)
 
             subtotal = Decimal("0.00")
             prepared_items = []
@@ -220,9 +228,7 @@ def create_order(request: HttpRequest) -> JsonResponse:
             for item in payload["items"]:
                 product_id = item.get("productId")
                 variant_id = item.get("variantId")
-                quantity = int(item.get("quantity", 0))
-                if quantity < 1:
-                    raise ValueError("Item quantity must be at least 1")
+                quantity = item["quantity"]
 
                 product = Product.objects.select_for_update().get(id=product_id, status=Product.Status.ACTIVE)
                 variant = None
@@ -233,6 +239,8 @@ def create_order(request: HttpRequest) -> JsonResponse:
                     unit_price += variant.price_adjustment
                     if variant.stock_quantity < quantity:
                         raise ValueError(f"Not enough stock for {variant.sku}")
+                elif product.variants.filter(is_active=True).exists():
+                    raise ValueError("A colour and size selection is required")
                 elif product.track_inventory and product.stock_quantity < quantity:
                     raise ValueError(f"Not enough stock for {product.sku}")
 
@@ -245,19 +253,23 @@ def create_order(request: HttpRequest) -> JsonResponse:
 
             order = Order.objects.create(
                 customer=customer,
-                email=customer.email,
-                phone=payload["phone"].strip(),
-                first_name=payload["firstName"].strip(),
-                last_name=payload["lastName"].strip(),
-                address=payload.get("address", "").strip() if fulfillment == "delivery" else "Store pickup",
-                city=payload.get("city", "").strip() if fulfillment == "delivery" else "Accra",
-                postcode="",
-                country=payload.get("country", "GH").strip()[:2].upper(),
+                email=payload["email"],
+                phone=payload["phone"],
+                first_name=payload["firstName"],
+                last_name=payload["lastName"],
+                address=(
+                    ", ".join(part for part in [payload["address"], payload["apartment"]] if part)
+                    if fulfillment == "delivery"
+                    else "Store pickup"
+                ),
+                city=payload["city"] if fulfillment == "delivery" else "Accra",
+                postcode=payload["postalCode"] if fulfillment == "delivery" else "",
+                country=payload["country"],
                 subtotal=subtotal,
                 delivery_fee=delivery_fee,
                 total=total,
                 currency=store_settings.currency,
-                notes=f"Fulfillment: {fulfillment}. Delivery area: {delivery_area or 'Store pickup'}. {payload.get('notes', '').strip()}".strip(),
+                notes=f"Fulfillment: {fulfillment}. Delivery method: {DELIVERY_METHOD_NAMES.get(delivery_area, 'Store pickup')}. {payload['notes']}".strip(),
             )
 
             for product, variant, quantity, unit_price, line_total in prepared_items:
@@ -267,6 +279,8 @@ def create_order(request: HttpRequest) -> JsonResponse:
                     variant=variant,
                     product_name=product.name,
                     sku=variant.sku if variant else product.sku,
+                    selected_color=variant.color_name if variant else "",
+                    selected_size=variant.size if variant else "",
                     quantity=quantity,
                     unit_price=unit_price,
                     line_total=line_total,
@@ -284,8 +298,8 @@ def create_order(request: HttpRequest) -> JsonResponse:
         return JsonResponse({"error": "One or more products are unavailable"}, status=400)
     except ProductVariant.DoesNotExist:
         return JsonResponse({"error": "One or more product variants are unavailable"}, status=400)
-    except (ValueError, TypeError) as exc:
-        return JsonResponse({"error": str(exc)}, status=400)
+    except (ValueError, TypeError):
+        return JsonResponse({"error": "The order contains invalid or unavailable items"}, status=400)
 
     return JsonResponse(
         {

@@ -5,7 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Plus, Minus, ShoppingBag, Trash2 } from "lucide-react";
-import { useCartStore } from "@/lib/store";
+import { cartItemKey, useCartStore } from "@/lib/store";
 import { formatPrice } from "@/lib/utils";
 
 export function CartDrawer() {
@@ -109,7 +109,7 @@ export function CartDrawer() {
                 <ul className="space-y-5">
                   {items.map((item) => (
                     <motion.li
-                      key={item.product.id}
+                      key={cartItemKey(item)}
                       layout
                       initial={{ opacity: 0, x: 20 }}
                       animate={{ opacity: 1, x: 0 }}
@@ -153,7 +153,7 @@ export function CartDrawer() {
                           <div className="flex items-center gap-2">
                             <button
                               onClick={() =>
-                                updateQuantity(item.product.id, item.quantity - 1)
+                                updateQuantity(cartItemKey(item), item.quantity - 1)
                               }
                               aria-label={`Decrease quantity for ${item.product.name}`}
                               className="w-7 h-7 border border-charcoal/20 flex items-center justify-center hover:bg-charcoal hover:text-white hover:border-charcoal transition-all duration-200"
@@ -165,7 +165,7 @@ export function CartDrawer() {
                             </span>
                             <button
                               onClick={() =>
-                                updateQuantity(item.product.id, item.quantity + 1)
+                                updateQuantity(cartItemKey(item), item.quantity + 1)
                               }
                               aria-label={`Increase quantity for ${item.product.name}`}
                               className="w-7 h-7 border border-charcoal/20 flex items-center justify-center hover:bg-charcoal hover:text-white hover:border-charcoal transition-all duration-200"
@@ -175,7 +175,7 @@ export function CartDrawer() {
                           </div>
 
                           <button
-                            onClick={() => removeItem(item.product.id)}
+                            onClick={() => removeItem(cartItemKey(item))}
                             aria-label={`Remove ${item.product.name} from cart`}
                             className="text-muted/50 hover:text-red-400 transition-colors"
                           >
