@@ -42,8 +42,6 @@ services:
         sync: false
       - key: DJANGO_DEFAULT_FROM_EMAIL
         value: Raf's Souq <rafssouqgh@gmail.com>
-      - key: CLOUDINARY_URL
-        sync: false
   - type: keyvalue
     name: rafs-souq-cache
     plan: free

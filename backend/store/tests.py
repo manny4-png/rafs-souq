@@ -1,14 +1,39 @@
 import json
+from unittest.mock import patch
 
 from django.core.cache import cache
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.http import HttpResponse
 from django.test import RequestFactory, SimpleTestCase, override_settings
 
 from .middleware import RequestSecurityMiddleware
+from .storage import CloudinaryMediaStorage
 from .validation import PayloadValidationError, clean_order_payload
 
 
 TEST_CACHES = {"default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache"}}
+
+
+class CloudinaryMediaStorageTests(SimpleTestCase):
+    @patch("store.storage.uploader.upload")
+    def test_upload_returns_cloudinary_public_id(self, upload):
+        upload.return_value = {"public_id": "rafs-souq/products/main/rose-abc123"}
+        content = SimpleUploadedFile("rose.jpg", b"image-bytes", content_type="image/jpeg")
+
+        name = CloudinaryMediaStorage().save("products/main/rose.jpg", content)
+
+        self.assertEqual(name, "rafs-souq/products/main/rose-abc123")
+        self.assertEqual(upload.call_args.kwargs["resource_type"], "image")
+        self.assertFalse(upload.call_args.kwargs["overwrite"])
+
+    @patch("store.storage.uploader.destroy")
+    def test_delete_invalidates_cloudinary_asset(self, destroy):
+        CloudinaryMediaStorage().delete("rafs-souq/products/main/rose-abc123")
+        destroy.assert_called_once_with(
+            "rafs-souq/products/main/rose-abc123",
+            resource_type="image",
+            invalidate=True,
+        )
 
 
 @override_settings(CACHES=TEST_CACHES, API_READ_RATE_LIMIT=2, API_WRITE_RATE_LIMIT=2, AUTH_RATE_LIMIT=5)
