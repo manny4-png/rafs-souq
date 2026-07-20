@@ -1,0 +1,310 @@
+import type { Product, Collection, NavLink } from "@/types";
+
+export const SITE_URL = "https://rafssouq.com";
+
+export const NAV_LINKS: NavLink[] = [
+  { label: "Home", href: "/" },
+  {
+    label: "Shop",
+    href: "/shop",
+    children: [
+      { label: "All Products", href: "/shop" },
+      { label: "Turbans", href: "/shop?category=turbans" },
+      { label: "Shades", href: "/shop?category=shades" },
+      { label: "Veils", href: "/shop?category=veils" },
+      { label: "Ready to Wear Dresses", href: "/shop?category=ready-to-wear" },
+    ],
+  },
+  { label: "Collections", href: "/collections" },
+  { label: "Contact", href: "/contact" },
+];
+
+export const PRODUCTS: Product[] = [
+  {
+    id: "p-001",
+    name: "The Sahara Turban",
+    price: 620,
+    category: "turbans",
+    images: [
+      "https://images.unsplash.com/photo-1594736797933-d0501ba2fe65?w=600&q=80",
+      "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=600&q=80",
+    ],
+    badge: "Bestseller",
+    colors: [
+      { name: "Desert Gold", hex: "#C9A227" },
+      { name: "Midnight Black", hex: "#1A1A1A" },
+      { name: "Sand Beige", hex: "#D8C3A5" },
+      { name: "Ivory", hex: "#F8F4EE" },
+    ],
+    sizes: ["One Size"],
+    rating: 5,
+    reviewCount: 42,
+    description:
+      "Our signature pre-shaped turban, made for polished everyday styling with soft structure and a graceful drape.",
+    details: [
+      "Premium stretch fabric",
+      "Pre-shaped inner frame",
+      "Adjustable fit",
+      "Comfortable all-day hold",
+      "Gentle hand wash recommended",
+    ],
+    inStock: true,
+    tags: ["turban", "bestseller", "signature", "modest"],
+  },
+  {
+    id: "p-002",
+    name: "Noir Pleated Turban",
+    price: 540,
+    originalPrice: 680,
+    category: "turbans",
+    images: [
+      "https://images.unsplash.com/photo-1526510747491-58f928ec870f?w=600&q=80",
+      "https://images.unsplash.com/photo-1519415943484-9fa1873496d4?w=600&q=80",
+    ],
+    badge: "Sale",
+    colors: [
+      { name: "Onyx", hex: "#1A1A1A" },
+      { name: "Wine", hex: "#722F37" },
+      { name: "Champagne", hex: "#E4C35A" },
+    ],
+    sizes: ["One Size"],
+    rating: 5,
+    reviewCount: 27,
+    description:
+      "A sculptural evening turban with refined pleats and a soft satin-lined finish.",
+    details: [
+      "Pleated finish",
+      "Satin inner lining",
+      "Pre-tied silhouette",
+      "Adjustable back band",
+      "Presented in Raf's Souq packaging",
+    ],
+    inStock: true,
+    tags: ["turban", "evening", "pleated", "sale"],
+  },
+  {
+    id: "p-003",
+    name: "Amina Oversized Shades",
+    price: 420,
+    category: "shades",
+    images: [
+      "https://images.unsplash.com/photo-1511499767150-a48a237f0083?w=600&q=80",
+      "https://images.unsplash.com/photo-1509695507497-903c140c43b0?w=600&q=80",
+    ],
+    badge: "New",
+    colors: [
+      { name: "Gloss Black", hex: "#0A0A0A" },
+      { name: "Tortoise", hex: "#8B5E3C" },
+      { name: "Rose Tint", hex: "#B76E79" },
+    ],
+    sizes: ["One Size"],
+    rating: 4,
+    reviewCount: 18,
+    description:
+      "Oversized UV-protective shades designed to pair beautifully with turbans, veils, and relaxed dresses.",
+    details: [
+      "UV400 protection",
+      "Lightweight frame",
+      "Soft protective pouch included",
+      "Scratch-resistant tinted lenses",
+      "One size fits most",
+    ],
+    inStock: true,
+    tags: ["shades", "sunglasses", "new", "accessory"],
+  },
+  {
+    id: "p-004",
+    name: "Gold Rim Square Shades",
+    price: 460,
+    category: "shades",
+    images: [
+      "https://images.unsplash.com/photo-1572635196237-14b3f281503f?w=600&q=80",
+      "https://images.unsplash.com/photo-1511556532299-8f662fc26c06?w=600&q=80",
+    ],
+    colors: [
+      { name: "Gold Brown", hex: "#B08D57" },
+      { name: "Smoke", hex: "#555A60" },
+    ],
+    sizes: ["One Size"],
+    rating: 5,
+    reviewCount: 22,
+    description:
+      "A refined square frame with warm gold detailing and softly shaded lenses.",
+    details: [
+      "UV400 lenses",
+      "Metal-accented frame",
+      "Adjustable nose pads",
+      "Protective pouch included",
+      "Wipe clean with lens cloth",
+    ],
+    inStock: true,
+    tags: ["shades", "gold", "square"],
+  },
+  {
+    id: "p-005",
+    name: "Pearl Chiffon Veil",
+    price: 350,
+    originalPrice: 430,
+    category: "veils",
+    images: [
+      "https://images.unsplash.com/photo-1607748851687-ba9a10438621?w=600&q=80",
+      "https://images.unsplash.com/photo-1601412436009-d964bd02edbc?w=600&q=80",
+    ],
+    badge: "Sale",
+    colors: [
+      { name: "Pearl", hex: "#F8F4EE" },
+      { name: "Blush", hex: "#E8B4B8" },
+      { name: "Sage", hex: "#8A9E7A" },
+      { name: "Navy", hex: "#1E2D4A" },
+    ],
+    sizes: ["180x75cm", "200x80cm"],
+    rating: 5,
+    reviewCount: 55,
+    description:
+      "A feather-light chiffon veil that falls in soft, controlled folds for everyday elegance.",
+    details: [
+      "Premium chiffon",
+      "Two size options",
+      "Lightweight and breathable",
+      "Pin-friendly weave",
+      "Hand wash or delicate machine wash",
+    ],
+    inStock: true,
+    tags: ["veil", "chiffon", "sale", "everyday"],
+  },
+  {
+    id: "p-006",
+    name: "Royal Satin Veil",
+    price: 480,
+    category: "veils",
+    images: [
+      "https://images.unsplash.com/photo-1511632765486-a01980e01a18?w=600&q=80",
+      "https://images.unsplash.com/photo-1508214751196-bcfd4ca60f91?w=600&q=80",
+    ],
+    badge: "Bestseller",
+    colors: [
+      { name: "Ivory", hex: "#F8F4EE" },
+      { name: "Dusty Rose", hex: "#D4A5A5" },
+      { name: "Charcoal", hex: "#3D3D3D" },
+    ],
+    sizes: ["190x80cm"],
+    rating: 5,
+    reviewCount: 38,
+    description:
+      "A luminous satin veil for formal looks, bridal styling, and special occasions.",
+    details: [
+      "Soft satin finish",
+      "Elegant natural sheen",
+      "Generous rectangular cut",
+      "Anti-static feel",
+      "Dry clean recommended",
+    ],
+    inStock: true,
+    tags: ["veil", "satin", "bestseller", "occasion"],
+  },
+  {
+    id: "p-007",
+    name: "Zaina Ready to Wear Dress",
+    price: 980,
+    category: "ready-to-wear",
+    images: [
+      "https://images.unsplash.com/photo-1583394838336-acd977736f90?w=600&q=80",
+      "https://images.unsplash.com/photo-1594744803329-e58b31de8bf5?w=600&q=80",
+    ],
+    badge: "New",
+    colors: [
+      { name: "Jet Black", hex: "#0A0A0A" },
+      { name: "Midnight Navy", hex: "#1E2D4A" },
+      { name: "Olive", hex: "#64735C" },
+    ],
+    sizes: ["XS", "S", "M", "L", "XL", "XXL"],
+    rating: 4,
+    reviewCount: 19,
+    description:
+      "A ready to wear modest dress with a fluid silhouette, soft movement, and practical everyday polish.",
+    details: [
+      "Premium crepe blend",
+      "Relaxed modest silhouette",
+      "Hidden side pockets",
+      "Available in six sizes",
+      "Machine washable at 30C",
+    ],
+    inStock: true,
+    tags: ["dress", "ready-to-wear", "new", "modest"],
+  },
+  {
+    id: "p-008",
+    name: "Noura Belted Dress",
+    price: 1250,
+    category: "ready-to-wear",
+    images: [
+      "https://images.unsplash.com/photo-1509631179647-0177331693ae?w=600&q=80",
+      "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=600&q=80",
+    ],
+    badge: "Exclusive",
+    colors: [
+      { name: "Emerald", hex: "#2E8B57" },
+      { name: "Cobalt", hex: "#0047AB" },
+      { name: "Royal Gold", hex: "#C9A227" },
+    ],
+    sizes: ["S/M", "M/L", "L/XL"],
+    rating: 5,
+    reviewCount: 12,
+    description:
+      "A statement belted dress with graceful volume and occasion-ready detailing.",
+    details: [
+      "Silk-blend fabric",
+      "Matching belt included",
+      "Easy slip-on fit",
+      "Limited production run",
+      "Dry clean only",
+    ],
+    inStock: true,
+    tags: ["dress", "ready-to-wear", "exclusive", "occasion"],
+  },
+];
+
+export const COLLECTIONS: Collection[] = [
+  {
+    id: "c-001",
+    name: "Turbans",
+    description: "The signature Raf's Souq product: sculpted, comfortable, and ready in seconds.",
+    image: "https://images.unsplash.com/photo-1594736797933-d0501ba2fe65?w=800&q=80",
+    itemCount: 32,
+    category: "turbans",
+    featured: true,
+  },
+  {
+    id: "c-002",
+    name: "Shades",
+    description: "Polished frames designed to complete every modest wardrobe.",
+    image: "https://images.unsplash.com/photo-1511499767150-a48a237f0083?w=800&q=80",
+    itemCount: 16,
+    category: "shades",
+  },
+  {
+    id: "c-003",
+    name: "Veils",
+    description: "Lightweight chiffon and satin veils for everyday and occasion dressing.",
+    image: "https://images.unsplash.com/photo-1607748851687-ba9a10438621?w=800&q=80",
+    itemCount: 28,
+    category: "veils",
+  },
+  {
+    id: "c-004",
+    name: "Ready to Wear Dresses",
+    description: "Modest dresses with graceful silhouettes and effortless movement.",
+    image: "https://images.unsplash.com/photo-1583394838336-acd977736f90?w=800&q=80",
+    itemCount: 22,
+    category: "ready-to-wear",
+    featured: true,
+  },
+];
+
+export const MARQUEE_ITEMS = [
+  "Signature Turbans",
+  "Elegant Shades",
+  "Soft Veils",
+  "Ready to Wear Dresses",
+  "New Arrivals Weekly",
+];

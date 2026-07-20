@@ -1,0 +1,64 @@
+.scrollSection { height: 220vh; position: relative; background: #f3eee6; }
+.stickyHero { position: sticky; top: 0; height: 100svh; min-height: 620px; overflow: hidden; isolation: isolate; background: #f3eee6; }
+.noise { position: absolute; inset: 0; z-index: -1; opacity: .18; pointer-events: none; background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.18'/%3E%3C/svg%3E"); }
+.glow { position: absolute; width: 58vw; height: 58vw; right: -10vw; top: -16vw; z-index: -2; border-radius: 50%; background: radial-gradient(circle, rgba(190,128,97,.34), rgba(237,201,176,.18) 38%, transparent 70%); }
+.copy { position: absolute; z-index: 10; left: clamp(24px, 6vw, 104px); top: 50%; width: min(45vw, 650px); transform: translateY(-48%); }
+.eyebrow { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; color: #8b5d48; font-size: 10px; font-weight: 600; letter-spacing: .23em; text-transform: uppercase; }
+.eyebrow span { display: block; width: 34px; height: 1px; background: currentColor; }
+.copy h1 { color: #201b18; font-size: clamp(54px, 6.8vw, 108px); line-height: .87; letter-spacing: -.055em; font-weight: 400; }
+.copy h1 em { color: #a6514b; font-weight: 400; }
+.lede { max-width: 475px; margin-top: 30px; color: #594f49; font-family: var(--font-cormorant); font-size: clamp(18px, 1.55vw, 24px); line-height: 1.4; }
+.actions { display: flex; align-items: center; gap: 25px; margin-top: 34px; }
+.primary, .secondary { display: inline-flex; align-items: center; justify-content: center; gap: 14px; text-transform: uppercase; letter-spacing: .16em; font-size: 10px; font-weight: 600; transition: .3s ease; }
+.primary { padding: 17px 22px; color: white; background: #201b18; }
+.primary:hover { background: #a6514b; transform: translateY(-2px); }
+.secondary { padding: 8px 0; color: #201b18; border-bottom: 1px solid #8f8178; }
+.secondary:hover { color: #a6514b; border-color: #a6514b; }
+.scrollCue { display: flex; align-items: center; gap: 8px; margin-top: clamp(30px, 7vh, 70px); color: #81746c; font-size: 9px; letter-spacing: .18em; text-transform: uppercase; }
+.scene { position: absolute; z-index: 3; top: 8%; right: 2.5%; width: 53%; height: 84%; perspective: 1300px; transform-style: preserve-3d; will-change: transform; }
+.portraitStack { position: absolute; inset: 0; transform-style: preserve-3d; }
+.portrait { position: absolute; top: 4%; left: 17%; width: min(32vw, 470px); aspect-ratio: .75; overflow: hidden; border-radius: 240px 240px 16px 16px; box-shadow: 0 35px 80px rgba(38,27,21,.2); transform-style: preserve-3d; will-change: transform, opacity, filter; }
+.portrait img, .product img { object-fit: cover; }
+.portrait figcaption { position: absolute; left: 20px; right: 20px; bottom: 18px; display: flex; justify-content: space-between; color: white; font-size: 9px; letter-spacing: .2em; text-transform: uppercase; text-shadow: 0 1px 8px #000; }
+.portrait figcaption span { opacity: .75; }
+.product { position: absolute; width: min(23vw, 350px); aspect-ratio: .82; overflow: hidden; padding: 8px; background: #fffaf3; border: 8px solid #fffaf3; box-shadow: 0 30px 70px rgba(38,27,21,.27); will-change: transform, opacity, filter; }
+.product img { object-position: center; }
+.product figcaption { position: absolute; inset: auto 13px 12px; padding: 11px 12px; background: rgba(247,241,232,.88); backdrop-filter: blur(8px); color: #251d19; font-family: var(--font-playfair); font-size: 17px; line-height: 1.15; }
+.product figcaption span { display: block; margin-bottom: 3px; font-family: var(--font-inter); font-size: 7px; letter-spacing: .2em; text-transform: uppercase; }
+.goldCard { left: 2%; top: 21%; }
+.tealCard { right: 0; top: 9%; }
+.mobileActions { display: none; }
+.sequence { position: absolute; z-index: 12; right: 28px; bottom: 25px; display: flex; align-items: center; gap: 9px; color: #6c5e56; font-size: 9px; letter-spacing: .12em; }
+.sequence i { position: relative; width: 76px; height: 1px; overflow: hidden; background: #cbbdb2; }
+.sequence b { position: absolute; inset: 0; transform: scaleX(0); transform-origin: left; background: #a6514b; }
+
+@media (max-width: 767px) {
+  .scrollSection { height: 220vh; }
+  .stickyHero { min-height: 590px; }
+  .glow { width: 110vw; height: 110vw; right: -35vw; top: 10vh; }
+  .copy { left: 22px; right: 22px; top: 112px; width: auto; transform: none; }
+  .eyebrow { margin-bottom: 13px; font-size: 8px; }
+  .copy h1 { max-width: 360px; font-size: clamp(45px, 14vw, 68px); line-height: .88; }
+  .lede { max-width: 330px; margin-top: 15px; font-size: 17px; line-height: 1.3; }
+  .actions { display: none; }
+  .primary { padding: 13px 14px; }
+  .secondary { font-size: 8px; }
+  .scrollCue { display: none; }
+  .scene { top: 46%; right: -4%; width: 86%; height: 52%; }
+  .portrait { top: 0; left: 12%; width: min(60vw, 310px); border-radius: 160px 160px 10px 10px; }
+  .portrait figcaption { bottom: 10px; left: 12px; right: 12px; font-size: 7px; }
+  .product { width: min(43vw, 210px); border-width: 5px; }
+  .product figcaption { inset: auto 6px 6px; padding: 7px; font-size: 12px; }
+  .goldCard { left: -2%; top: 10%; }
+  .tealCard { right: -5%; top: 1%; }
+  .mobileActions { position: absolute; z-index: 14; left: 22px; bottom: 22px; display: flex; }
+  .sequence { right: 18px; bottom: 12px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scrollSection { height: auto; }
+  .stickyHero { position: relative; }
+  .portrait:not(:first-child), .product { display: none; }
+  .portrait:first-child { opacity: 1 !important; transform: none !important; }
+  .sequence { display: none; }
+}
