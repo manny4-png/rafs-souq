@@ -7,18 +7,18 @@ import { Instagram, Heart } from "lucide-react";
 
 const INSTA_POSTS = [
   {
-    src: "/instagram/insta1.jpg",
+    src: "/instagram/insta1.jpeg",
     likes: "1.2k",
     alt: "Black embellished turban with gold jewelry",
   },
   {
-    src: "/instagram/insta2.jpg",
+    src: "/instagram/insta2.jpeg",
     likes: "987",
     alt: "Purple pleated satin turban styling",
   },
   {
     src: "/instagram/insta3.png",
-    likes: "2.3k",
+    likes: "2k",
     alt: "Brown beaded turban with floral ear accessory",
   },
   {
@@ -28,8 +28,28 @@ const INSTA_POSTS = [
   },
   {
     src: "/instagram/insta5.jpeg",
-    likes: "1.4k",
+    likes: "1k",
     alt: "Pink and purple wrapped turban with jeweled accessory",
+  },
+  {
+    src: "/instagram/turban-red.jpeg",
+    likes: "845",
+    alt: "Woman wearing a red turban and holding colorful wraps",
+  },
+  {
+    src: "/instagram/turban-multicolour.jpeg",
+    likes: "400",
+    alt: "Woman wearing a multicoloured turban and holding colorful wraps",
+  },
+  {
+    src: "/instagram/instag.jpeg",
+    likes: "400",
+    alt: "Woman wearing a multicoloured turban and holding colorful wraps",
+  },
+  {
+    src: "/instagram/instag2.jpeg",
+    likes: "400",
+    alt: "Woman wearing a multicoloured turban and holding colorful wraps",
   },
 ];
 
