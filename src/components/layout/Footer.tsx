@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Instagram } from "lucide-react";
+import { Instagram, Music2 } from "lucide-react";
 import { BrandLogo } from "@/components/ui/BrandLogo";
 
 const footerLinks = {
@@ -8,6 +8,9 @@ const footerLinks = {
     { label: "Shades", href: "/shop?category=shades" },
     { label: "Veils", href: "/shop?category=veils" },
     { label: "Ready to Wear Dresses", href: "/shop?category=ready-to-wear" },
+    { label: "Ladies Accessories", href: "/shop?category=ladies-accessories" },
+    { label: "Kids Turbans", href: "/shop?category=kids-turbans" },
+    { label: "Headbands", href: "/shop?category=headbands" },
   ],
   Help: [
     { label: "Turban Cap FAQs", href: "/faq" },
@@ -42,12 +45,15 @@ export function Footer() {
             </p>
             <div className="flex gap-3">
               {[
-                { Icon: Instagram, label: "Instagram" },
-              ].map(({ Icon, label }) => (
+                { Icon: Instagram, label: "Instagram", href: "https://www.instagram.com/rafssouq/" },
+                { Icon: Music2, label: "TikTok", href: "https://www.tiktok.com/@rafs.souq?_r=1&_t=ZS-98EvJt4cY4a" },
+              ].map(({ Icon, label, href }) => (
                 <a
                   key={label}
-                  href="https://www.instagram.com/rafssouq/"
+                  href={href}
                   aria-label={label}
+                  target="_blank"
+                  rel="noreferrer"
                   className="w-9 h-9 border border-white/10 flex items-center justify-center text-white/40 hover:border-gold hover:text-gold transition-all duration-300"
                 >
                   <Icon size={15} />

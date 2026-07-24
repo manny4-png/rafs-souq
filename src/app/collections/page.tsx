@@ -5,7 +5,7 @@ import { getCategories } from "@/lib/api";
 
 export const metadata = {
   title: "Collections",
-  description: "Explore Raf's Souq collections: turbans, shades, veils, and ready to wear dresses.",
+  description: "Explore Raf's Souq collections, including turbans, ladies accessories, kids turbans, headbands, shades, veils, and ready to wear dresses.",
 };
 
 export const dynamic = "force-dynamic";

@@ -49,18 +49,23 @@ export function ContactClient() {
 
           <div className="space-y-6">
             {[
-              { Icon: Mail, label: "Email", value: "rafssouqgh@gmail.com" },
-              { Icon: Phone, label: "Phone", value: "+233558821133" },
+              { Icon: Mail, label: "Email", value: "rafssouqgh@gmail.com", href: "mailto:rafssouqgh@gmail.com" },
+              { Icon: Phone, label: "Phone", value: "+233 55 882 1133", href: "tel:+233558821133" },
+              { Icon: Phone, label: "Phone", value: "053 244 1241", href: "tel:+233532441241" },
               { Icon: MapPin, label: "Address", value: "Accra, Ghana" },
               
-            ].map(({ Icon, label, value }) => (
-              <div key={label} className="flex items-start gap-4">
+            ].map(({ Icon, label, value, href }) => (
+              <div key={`${label}-${value}`} className="flex items-start gap-4">
                 <div className="w-10 h-10 bg-gold/10 flex items-center justify-center flex-shrink-0">
                   <Icon size={16} className="text-gold" />
                 </div>
                 <div>
                   <p className="text-[0.72rem] tracking-[0.16em] uppercase font-inter font-medium text-charcoal mb-0.5">{label}</p>
-                  <p className="text-muted text-[0.9rem] font-inter">{value}</p>
+                  {href ? (
+                    <a href={href} className="text-muted text-[0.9rem] font-inter hover:text-gold transition-colors">{value}</a>
+                  ) : (
+                    <p className="text-muted text-[0.9rem] font-inter">{value}</p>
+                  )}
                 </div>
               </div>
             ))}

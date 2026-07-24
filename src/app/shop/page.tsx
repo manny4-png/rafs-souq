@@ -4,7 +4,7 @@ import { ShopClient } from "./ShopClient";
 import { getCategories, getProducts } from "@/lib/api";
 
 export const metadata: Metadata = {
-  title: "Shop Turbans, Shades, Veils and Ready to Wear Dresses",
+  title: "Shop Turbans, Accessories, Headbands, Shades, Veils and Dresses",
   description:
     "Browse Raf's Souq turbans, shades, veils, and ready to wear dresses priced in Ghana cedis.",
   alternates: {
