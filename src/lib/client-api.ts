@@ -56,10 +56,23 @@ async function getCsrfToken() {
 
 export async function createOrder(form: CheckoutForm, items: CartItem[]) {
   const csrfToken = await getCsrfToken();
-  const missingBackendProducts = items.some((item) => !item.product.backendId);
+  const normalizedItems = items.map((item) => ({
+    productId: Number(item.product.backendId),
+    variantId: item.selectedVariantId ? Number(item.selectedVariantId) : null,
+    quantity: item.quantity,
+  }));
+  const hasInvalidBackendIds = normalizedItems.some(
+    (item) =>
+      !Number.isInteger(item.productId) ||
+      item.productId < 1 ||
+      (item.variantId !== null &&
+        (!Number.isInteger(item.variantId) || item.variantId < 1))
+  );
 
-  if (missingBackendProducts) {
-    throw new Error("Checkout needs live backend products. Please refresh the shop.");
+  if (hasInvalidBackendIds) {
+    throw new Error(
+      "Your cart contains outdated product data. Please remove the item and add it again from the shop."
+    );
   }
 
   const response = await fetch(`${apiBaseUrl()}/orders/`, {
@@ -81,11 +94,7 @@ export async function createOrder(form: CheckoutForm, items: CartItem[]) {
       country: form.country,
       deliveryArea: form.deliveryArea,
       fulfillment: form.fulfillment,
-      items: items.map((item) => ({
-        productId: item.product.backendId,
-        variantId: item.selectedVariantId ? Number(item.selectedVariantId) : null,
-        quantity: item.quantity,
-      })),
+      items: normalizedItems,
     }),
   });
 
