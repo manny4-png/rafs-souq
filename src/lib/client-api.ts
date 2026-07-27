@@ -21,6 +21,23 @@ type CheckoutForm = {
   deliveryFee: number;
 };
 
+async function readJsonResponse(response: Response) {
+  const contentType = response.headers.get("content-type") || "";
+  if (!contentType.toLowerCase().includes("application/json")) {
+    throw new Error(
+      response.ok
+        ? "The payment service returned an unexpected response."
+        : `The payment service is unavailable (${response.status}). Please try again shortly.`
+    );
+  }
+
+  try {
+    return (await response.json()) as Record<string, unknown>;
+  } catch {
+    throw new Error("The payment service returned an invalid response. Please try again.");
+  }
+}
+
 async function getCsrfToken() {
   const response = await fetch(`${apiBaseUrl()}/csrf/`, {
     credentials: "include",
@@ -30,7 +47,10 @@ async function getCsrfToken() {
     throw new Error("Could not prepare checkout. Please try again.");
   }
 
-  const data = (await response.json()) as { csrfToken: string };
+  const data = await readJsonResponse(response);
+  if (typeof data.csrfToken !== "string") {
+    throw new Error("Could not prepare checkout. Please try again.");
+  }
   return data.csrfToken;
 }
 
@@ -69,10 +89,14 @@ export async function createOrder(form: CheckoutForm, items: CartItem[]) {
     }),
   });
 
-  const data = await response.json();
+  const data = await readJsonResponse(response);
 
   if (!response.ok) {
-    throw new Error(data.error || "Order could not be placed. Please try again.");
+    throw new Error(
+      typeof data.error === "string"
+        ? data.error
+        : "Order could not be placed. Please try again."
+    );
   }
 
   return data as {
@@ -98,10 +122,14 @@ export async function verifyPaystackPayment(reference: string) {
       cache: "no-store",
     }
   );
-  const data = await response.json();
+  const data = await readJsonResponse(response);
 
   if (!response.ok) {
-    throw new Error(data.error || "Payment could not be verified. Please try again.");
+    throw new Error(
+      typeof data.error === "string"
+        ? data.error
+        : "Payment could not be verified. Please try again."
+    );
   }
 
   return data as {

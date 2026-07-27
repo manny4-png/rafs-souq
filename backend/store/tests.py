@@ -123,6 +123,31 @@ class OrderPayloadValidationTests(SimpleTestCase):
             clean_order_payload(payload)
 
 
+@override_settings(CACHES=TEST_CACHES)
+class CheckoutTokenTests(TestCase):
+    def test_order_creation_rejects_missing_checkout_token_with_json(self):
+        response = self.client.post(
+            "/api/orders/",
+            data=json.dumps({}),
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response["Content-Type"], "application/json")
+        self.assertIn("expired", response.json()["error"].lower())
+
+    def test_checkout_token_is_accepted_without_a_csrf_cookie(self):
+        token = self.client.get("/api/csrf/").json()["csrfToken"]
+        self.client.cookies.clear()
+        response = self.client.post(
+            "/api/orders/",
+            data=json.dumps({}),
+            content_type="application/json",
+            HTTP_X_CSRFTOKEN=token,
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response["Content-Type"], "application/json")
+
+
 @override_settings(CACHES=TEST_CACHES, PAYSTACK_SECRET_KEY="sk_test_webhook_secret")
 class PaystackPaymentTests(TestCase):
     def setUp(self):

@@ -8,10 +8,10 @@ import secrets
 from decimal import Decimal
 
 from django.conf import settings
+from django.core import signing
 from django.db import transaction
 from django.http import HttpRequest, HttpResponse, JsonResponse
-from django.middleware.csrf import get_token
-from django.views.decorators.csrf import csrf_exempt, csrf_protect
+from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_GET, require_POST
 
 from .models import Category, Customer, Order, OrderItem, Product, ProductVariant, StoreSetting
@@ -39,6 +39,8 @@ DELIVERY_METHOD_NAMES = {
     "within-accra": "Within Accra — GH₵35 paid to rider",
 }
 SLUG_PATTERN = re.compile(r"^[a-z0-9-]{1,140}$")
+CHECKOUT_TOKEN_SALT = "store.checkout"
+CHECKOUT_TOKEN_MAX_AGE = 30 * 60
 
 
 def absolute_media_url(request: HttpRequest, file_field) -> str | None:
@@ -133,7 +135,8 @@ def health(request: HttpRequest) -> JsonResponse:
 
 @require_GET
 def csrf(request: HttpRequest) -> JsonResponse:
-    return JsonResponse({"csrfToken": get_token(request)})
+    token = signing.dumps({"purpose": "checkout"}, salt=CHECKOUT_TOKEN_SALT)
+    return JsonResponse({"csrfToken": token})
 
 
 @require_GET
@@ -193,8 +196,22 @@ def get_store_settings() -> StoreSetting:
 
 
 @require_POST
-@csrf_protect
+@csrf_exempt
 def create_order(request: HttpRequest) -> JsonResponse:
+    try:
+        token_data = signing.loads(
+            request.headers.get("X-CSRFToken", ""),
+            salt=CHECKOUT_TOKEN_SALT,
+            max_age=CHECKOUT_TOKEN_MAX_AGE,
+        )
+        if token_data != {"purpose": "checkout"}:
+            raise signing.BadSignature
+    except (signing.BadSignature, signing.SignatureExpired):
+        return JsonResponse(
+            {"error": "Checkout session expired. Please try again."},
+            status=403,
+        )
+
     try:
         raw_payload = json.loads(
             request.body.decode("utf-8"),
