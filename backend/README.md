@@ -11,7 +11,7 @@ The current Next.js storefront can display products, but a real online store nee
 - Product images and variant stock
 - Order records and fulfilment status
 - Stock validation before checkout
-- Future payment integration with providers such as Paystack or Flutterwave
+- Paystack-hosted checkout with verified payment webhooks
 
 ## Local Setup
 
@@ -66,9 +66,31 @@ GET  /api/categories/
 GET  /api/products/
 GET  /api/products/<slug>/
 POST /api/orders/
+GET  /api/payments/paystack/verify/?reference=<reference>
+POST /api/payments/paystack/webhook/
 ```
 
 Order creation is CSRF-protected and validates live stock inside a database transaction.
+Stock is deducted exactly once after a successful Paystack transaction has been
+verified against the order reference, currency, and server-calculated amount.
+
+## Paystack Setup
+
+Add these values to `backend/.env` for local testing:
+
+```text
+PAYSTACK_SECRET_KEY=sk_test_your_key
+PAYSTACK_CALLBACK_URL=http://localhost:3000/payment/callback
+```
+
+In production, add the live secret and callback URL to the Render service's
+encrypted environment variables. In the Paystack dashboard, set the webhook to:
+
+```text
+https://YOUR-BACKEND-DOMAIN/api/payments/paystack/webhook/
+```
+
+Never put the Paystack secret key in the Next.js environment or browser code.
 
 ## Frontend Integration Notes
 
@@ -88,6 +110,8 @@ then provide the environment values marked `sync: false`:
 - `DJANGO_ALLOWED_HOSTS`: custom API hosts only, comma-separated and without a scheme. Render's own hostname is added automatically.
 - `DJANGO_CORS_ALLOWED_ORIGINS` and `DJANGO_CSRF_TRUSTED_ORIGINS`: the public frontend URL, including `https://`.
 - `FRONTEND_SITE_URL`: the public frontend URL.
+- `PAYSTACK_SECRET_KEY`: the Paystack secret key for the current test or live environment.
+- `PAYSTACK_CALLBACK_URL`: the public frontend URL followed by `/payment/callback`.
 - `DJANGO_ADMIN_URL`: a private path ending in `/`, for example `management-7f3a/`.
 - SMTP host, username, and password for transactional email.
 

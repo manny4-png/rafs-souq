@@ -1,16 +1,27 @@
 from __future__ import annotations
 
+import hashlib
+import hmac
 import json
 import re
+import secrets
 from decimal import Decimal
 
+from django.conf import settings
 from django.db import transaction
-from django.http import HttpRequest, JsonResponse
+from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.middleware.csrf import get_token
-from django.views.decorators.csrf import csrf_protect
+from django.views.decorators.csrf import csrf_exempt, csrf_protect
 from django.views.decorators.http import require_GET, require_POST
 
 from .models import Category, Customer, Order, OrderItem, Product, ProductVariant, StoreSetting
+from .payments import (
+    InventoryUnavailableError,
+    PaymentValidationError,
+    amount_in_subunits,
+    mark_order_paid,
+)
+from .paystack import PaystackError, initialize_transaction, verify_transaction
 from .validation import PayloadValidationError, clean_order_payload
 
 
@@ -286,20 +297,32 @@ def create_order(request: HttpRequest) -> JsonResponse:
                     line_total=line_total,
                 )
 
-                if variant:
-                    variant.stock_quantity -= quantity
-                    variant.save(update_fields=["stock_quantity", "updated_at"])
-
-                if product.track_inventory:
-                    product.stock_quantity -= quantity
-                    product.save(update_fields=["stock_quantity", "updated_at"])
-
     except Product.DoesNotExist:
         return JsonResponse({"error": "One or more products are unavailable"}, status=400)
     except ProductVariant.DoesNotExist:
         return JsonResponse({"error": "One or more product variants are unavailable"}, status=400)
     except (ValueError, TypeError):
         return JsonResponse({"error": "The order contains invalid or unavailable items"}, status=400)
+
+    reference = f"RS-{secrets.token_urlsafe(18)}"
+    order.paystack_reference = reference
+    order.save(update_fields=["paystack_reference", "updated_at"])
+
+    try:
+        payment = initialize_transaction(
+            email=order.email,
+            amount=amount_in_subunits(order.total),
+            currency=order.currency,
+            reference=reference,
+            callback_url=settings.PAYSTACK_CALLBACK_URL,
+            order_number=order.order_number,
+        )
+    except PaystackError:
+        order.delete()
+        return JsonResponse(
+            {"error": "Payment could not be prepared. Please try again."},
+            status=502,
+        )
 
     return JsonResponse(
         {
@@ -311,10 +334,90 @@ def create_order(request: HttpRequest) -> JsonResponse:
                 "deliveryFee": str(order.delivery_fee),
                 "total": str(order.total),
                 "currency": order.currency,
-            }
+            },
+            "payment": {
+                "authorizationUrl": payment["authorization_url"],
+                "reference": payment["reference"],
+            },
         },
         status=201,
     )
+
+
+@require_GET
+def verify_paystack_payment(request: HttpRequest) -> JsonResponse:
+    reference = request.GET.get("reference", "").strip()
+    if not reference or len(reference) > 100:
+        return JsonResponse({"error": "A valid payment reference is required"}, status=400)
+
+    try:
+        order = Order.objects.get(paystack_reference=reference)
+        payment = verify_transaction(reference)
+        order = mark_order_paid(order, payment)
+    except Order.DoesNotExist:
+        return JsonResponse({"error": "Order not found"}, status=404)
+    except PaystackError:
+        return JsonResponse({"error": "Payment could not be verified. Please try again."}, status=502)
+    except PaymentValidationError:
+        return JsonResponse({"error": "Payment has not been completed."}, status=400)
+    except (Product.DoesNotExist, ProductVariant.DoesNotExist, InventoryUnavailableError):
+        Order.objects.filter(paystack_reference=reference).update(
+            payment_status=Order.PaymentStatus.AUTHORIZED
+        )
+        return JsonResponse(
+            {"error": "Payment was received, but the order needs manual review. Please contact us."},
+            status=409,
+        )
+
+    return JsonResponse(
+        {
+            "order": {
+                "orderNumber": order.order_number,
+                "status": order.status,
+                "paymentStatus": order.payment_status,
+                "total": str(order.total),
+                "currency": order.currency,
+            }
+        }
+    )
+
+
+@csrf_exempt
+@require_POST
+def paystack_webhook(request: HttpRequest) -> HttpResponse:
+    if not settings.PAYSTACK_SECRET_KEY:
+        return HttpResponse(status=503)
+
+    expected_signature = hmac.new(
+        settings.PAYSTACK_SECRET_KEY.encode("utf-8"),
+        request.body,
+        hashlib.sha512,
+    ).hexdigest()
+    received_signature = request.headers.get("x-paystack-signature", "")
+    if not hmac.compare_digest(expected_signature, received_signature):
+        return HttpResponse(status=401)
+
+    try:
+        event = json.loads(request.body)
+    except (json.JSONDecodeError, UnicodeDecodeError):
+        return HttpResponse(status=400)
+
+    if event.get("event") == "charge.success" and isinstance(event.get("data"), dict):
+        payment = event["data"]
+        reference = payment.get("reference")
+        try:
+            order = Order.objects.get(paystack_reference=reference)
+            mark_order_paid(order, payment)
+        except Order.DoesNotExist:
+            pass
+        except PaymentValidationError:
+            pass
+        except (Product.DoesNotExist, ProductVariant.DoesNotExist, InventoryUnavailableError):
+            Order.objects.filter(paystack_reference=reference).update(
+                payment_status=Order.PaymentStatus.AUTHORIZED
+            )
+
+    return HttpResponse(status=200)
 
 
 @require_GET

@@ -1,12 +1,17 @@
+import hashlib
+import hmac
 import json
+from decimal import Decimal
 from unittest.mock import patch
 
 from django.core.cache import cache
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.http import HttpResponse
-from django.test import RequestFactory, SimpleTestCase, override_settings
+from django.test import RequestFactory, SimpleTestCase, TestCase, override_settings
 
 from .middleware import RequestSecurityMiddleware
+from .models import Category, InventoryMovement, Order, OrderItem, Product
+from .payments import mark_order_paid
 from .storage import CloudinaryMediaStorage
 from .validation import PayloadValidationError, clean_order_payload
 
@@ -110,10 +115,109 @@ class OrderPayloadValidationTests(SimpleTestCase):
         with self.assertRaises(PayloadValidationError):
             clean_order_payload(payload)
 
-    def test_phone_number_is_accepted_as_contact(self):
+    def test_email_is_required_for_paystack(self):
         payload = self.valid_payload()
         payload.pop("email")
         payload["contact"] = "+233 24 000 0000"
-        cleaned = clean_order_payload(payload)
-        self.assertEqual(cleaned["email"], "")
-        self.assertEqual(cleaned["contact"], "+233 24 000 0000")
+        with self.assertRaises(PayloadValidationError):
+            clean_order_payload(payload)
+
+
+@override_settings(CACHES=TEST_CACHES, PAYSTACK_SECRET_KEY="sk_test_webhook_secret")
+class PaystackPaymentTests(TestCase):
+    def setUp(self):
+        category = Category.objects.create(name="Turbans")
+        self.product = Product.objects.create(
+            category=category,
+            name="Rose Turban",
+            sku="ROSE-1",
+            description="Test turban",
+            price=Decimal("120.50"),
+            currency="GHS",
+            status=Product.Status.ACTIVE,
+            stock_quantity=5,
+        )
+        self.order = Order.objects.create(
+            email="ama@example.com",
+            phone="+233 20 123 4567",
+            first_name="Ama",
+            last_name="Mensah",
+            address="Store pickup",
+            city="Accra",
+            subtotal=Decimal("120.50"),
+            total=Decimal("120.50"),
+            currency="GHS",
+            paystack_reference="RS-test-reference",
+        )
+        OrderItem.objects.create(
+            order=self.order,
+            product=self.product,
+            product_name=self.product.name,
+            sku=self.product.sku,
+            quantity=1,
+            unit_price=Decimal("120.50"),
+            line_total=Decimal("120.50"),
+        )
+
+    def payment(self, **overrides):
+        data = {
+            "id": 123456789,
+            "status": "success",
+            "reference": self.order.paystack_reference,
+            "currency": "GHS",
+            "amount": 12050,
+            "channel": "mobile_money",
+        }
+        data.update(overrides)
+        return data
+
+    def test_successful_payment_marks_order_paid_and_deducts_stock_once(self):
+        mark_order_paid(self.order, self.payment())
+        mark_order_paid(self.order, self.payment())
+
+        self.order.refresh_from_db()
+        self.product.refresh_from_db()
+        self.assertEqual(self.order.payment_status, Order.PaymentStatus.PAID)
+        self.assertEqual(self.order.status, Order.Status.PAID)
+        self.assertEqual(self.product.stock_quantity, 4)
+        self.assertEqual(InventoryMovement.objects.count(), 1)
+
+    def test_payment_amount_must_match_order(self):
+        with self.assertRaises(ValueError):
+            mark_order_paid(self.order, self.payment(amount=100))
+        self.order.refresh_from_db()
+        self.product.refresh_from_db()
+        self.assertEqual(self.order.payment_status, Order.PaymentStatus.UNPAID)
+        self.assertEqual(self.product.stock_quantity, 5)
+
+    def test_webhook_rejects_invalid_signature(self):
+        response = self.client.post(
+            "/api/payments/paystack/webhook/",
+            data=json.dumps({"event": "charge.success", "data": self.payment()}),
+            content_type="application/json",
+            HTTP_X_PAYSTACK_SIGNATURE="invalid",
+        )
+        self.assertEqual(response.status_code, 401)
+
+    def test_signed_webhook_is_idempotent(self):
+        body = json.dumps({"event": "charge.success", "data": self.payment()})
+        signature = hmac.new(
+            b"sk_test_webhook_secret",
+            body.encode("utf-8"),
+            hashlib.sha512,
+        ).hexdigest()
+
+        for _ in range(2):
+            response = self.client.post(
+                "/api/payments/paystack/webhook/",
+                data=body,
+                content_type="application/json",
+                HTTP_X_PAYSTACK_SIGNATURE=signature,
+            )
+            self.assertEqual(response.status_code, 200)
+
+        self.order.refresh_from_db()
+        self.product.refresh_from_db()
+        self.assertEqual(self.order.payment_status, Order.PaymentStatus.PAID)
+        self.assertEqual(self.product.stock_quantity, 4)
+        self.assertEqual(InventoryMovement.objects.count(), 1)

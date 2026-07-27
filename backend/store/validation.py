@@ -41,16 +41,12 @@ def clean_order_payload(payload) -> dict:
     if fulfillment not in {"delivery", "pickup"}:
         raise PayloadValidationError("Invalid fulfillment method")
 
-    contact = clean_text(payload.get("contact", payload.get("email", "")), "contact", 254)
-    email = ""
-    if "@" in contact:
-        email = contact.lower()
-        try:
-            validate_email(email)
-        except ValidationError as exc:
-            raise PayloadValidationError("Enter a valid email address or phone number") from exc
-    elif not PHONE_PATTERN.fullmatch(contact):
-        raise PayloadValidationError("Enter a valid email address or phone number")
+    contact = clean_text(payload.get("contact", payload.get("email", "")), "email", 254)
+    email = contact.lower()
+    try:
+        validate_email(email)
+    except ValidationError as exc:
+        raise PayloadValidationError("Enter a valid email address") from exc
 
     phone = clean_text(payload.get("phone", ""), "phone", 25)
     if not PHONE_PATTERN.fullmatch(phone):

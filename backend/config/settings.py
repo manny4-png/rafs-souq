@@ -212,6 +212,11 @@ if not DEBUG:
 
 ADMIN_URL = os.environ.get("DJANGO_ADMIN_URL", "secure-admin/")
 FRONTEND_SITE_URL = os.environ.get("FRONTEND_SITE_URL", "http://localhost:3000")
+PAYSTACK_SECRET_KEY = os.environ.get("PAYSTACK_SECRET_KEY", "").strip()
+PAYSTACK_CALLBACK_URL = os.environ.get(
+    "PAYSTACK_CALLBACK_URL",
+    f"{FRONTEND_SITE_URL.rstrip('/')}/payment/callback",
+).strip()
 FILE_UPLOAD_MAX_MEMORY_SIZE = 5 * 1024 * 1024
 DATA_UPLOAD_MAX_MEMORY_SIZE = API_MAX_BODY_BYTES
 DATA_UPLOAD_MAX_NUMBER_FIELDS = 200

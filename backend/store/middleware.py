@@ -49,6 +49,8 @@ class RequestSecurityMiddleware:
         return None
 
     def _limit_for(self, request):
+        if request.path == "/api/payments/paystack/webhook/":
+            return 0, ""
         is_auth_attempt = request.method == "POST" and request.path.startswith(self.admin_path) and (
             request.path.endswith("/login/")
             or "password-reset" in request.path

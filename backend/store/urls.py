@@ -10,4 +10,6 @@ urlpatterns = [
     path("products/", views.products, name="products"),
     path("products/<slug:slug>/", views.product_detail, name="product-detail"),
     path("orders/", views.create_order, name="create-order"),
+    path("payments/paystack/verify/", views.verify_paystack_payment, name="verify-paystack-payment"),
+    path("payments/paystack/webhook/", views.paystack_webhook, name="paystack-webhook"),
 ]

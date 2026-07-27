@@ -62,7 +62,7 @@ export function CheckoutClient() {
   const [fulfillment, setFulfillment] = useState<"delivery" | "pickup">("delivery");
   const [saveInformation, setSaveInformation] = useState(false);
   const [errors, setErrors] = useState<Partial<Record<keyof FormState, string>>>({});
-  const { items, totalPrice, clearCart } = useCartStore();
+  const { items, totalPrice } = useCartStore();
   const total = typeof totalPrice === "function" ? totalPrice() : 0;
   const deliveryFee = fulfillment === "pickup" ? 0 : (DELIVERY_FEES.get(form.deliveryArea) ?? 0);
   const selectedDeliveryMethod = DELIVERY_METHODS.find((method) => method.id === form.deliveryArea);
@@ -96,8 +96,8 @@ export function CheckoutClient() {
     requiredDelivery.forEach((field) => {
       if (!form[field].trim()) nextErrors[field] = "Required";
     });
-    if (form.email && !/^\S+@\S+\.\S+$/.test(form.email) && !/^\+?[0-9][0-9 ()-]{6,24}$/.test(form.email)) {
-      nextErrors.email = "Enter a valid email address or phone number";
+    if (form.email && !/^\S+@\S+\.\S+$/.test(form.email)) {
+      nextErrors.email = "Enter a valid email address";
     }
     if (form.postalCode && !/^[A-Za-z0-9][A-Za-z0-9 -]{1,10}[A-Za-z0-9]$/.test(form.postalCode)) {
       nextErrors.postalCode = "Enter a valid postal code for Ghana";
@@ -130,9 +130,7 @@ export function CheckoutClient() {
     try {
       setIsPlacingOrder(true);
       const result = await createOrder({ ...form, fulfillment, deliveryFee }, items);
-      toast.show(`Order ${result.order.orderNumber} placed successfully!`);
-      clearCart();
-      setStep(4);
+      window.location.assign(result.payment.authorizationUrl);
     } catch (error) {
       toast.show(
         error instanceof Error ? error.message : "Order could not be placed.",
@@ -248,14 +246,14 @@ export function CheckoutClient() {
 
                 <h2 className="font-playfair text-lg text-charcoal mb-4">Contact</h2>
                 <div>
-                  <label htmlFor="email" className="block text-[0.7rem] tracking-[0.14em] uppercase font-inter font-medium text-charcoal mb-1.5">Email or phone</label>
+                  <label htmlFor="email" className="block text-[0.7rem] tracking-[0.14em] uppercase font-inter font-medium text-charcoal mb-1.5">Email</label>
                   <input
                     id="email"
                     type="text"
-                    autoComplete="email tel"
+                    autoComplete="email"
                     value={form.email}
                     onChange={(event) => setField("email", event.target.value)}
-                    placeholder="Email or mobile phone number"
+                    placeholder="you@example.com"
                     aria-invalid={Boolean(errors.email)}
                     aria-describedby={errors.email ? "email-error" : undefined}
                     className="w-full rounded-lg border border-charcoal/15 px-4 py-3 text-[0.88rem] font-inter outline-none focus:border-gold transition-colors"

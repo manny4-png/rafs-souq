@@ -83,5 +83,34 @@ export async function createOrder(form: CheckoutForm, items: CartItem[]) {
       total: string;
       currency: string;
     };
+    payment: {
+      authorizationUrl: string;
+      reference: string;
+    };
+  };
+}
+
+export async function verifyPaystackPayment(reference: string) {
+  const response = await fetch(
+    `${apiBaseUrl()}/payments/paystack/verify/?reference=${encodeURIComponent(reference)}`,
+    {
+      credentials: "include",
+      cache: "no-store",
+    }
+  );
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.error || "Payment could not be verified. Please try again.");
+  }
+
+  return data as {
+    order: {
+      orderNumber: string;
+      status: string;
+      paymentStatus: string;
+      total: string;
+      currency: string;
+    };
   };
 }

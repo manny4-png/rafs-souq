@@ -210,6 +210,10 @@ class Order(TimeStampedModel):
     total = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal("0.00"))
     currency = models.CharField(max_length=3, default="GHS")
     notes = models.TextField(blank=True)
+    paystack_reference = models.CharField(max_length=100, unique=True, null=True, blank=True)
+    paystack_transaction_id = models.CharField(max_length=40, blank=True)
+    payment_channel = models.CharField(max_length=40, blank=True)
+    paid_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         ordering = ["-created_at"]

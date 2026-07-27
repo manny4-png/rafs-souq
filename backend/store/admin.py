@@ -173,8 +173,19 @@ class OrderItemInline(admin.TabularInline):
 class OrderAdmin(admin.ModelAdmin):
     list_display = ["order_number", "customer_name", "email", "status", "payment_status", "total", "created_at"]
     list_filter = ["status", "payment_status", "created_at", "city"]
-    search_fields = ["order_number", "email", "first_name", "last_name", "phone"]
-    readonly_fields = ["order_number", "subtotal", "delivery_fee", "total", "created_at", "updated_at"]
+    search_fields = ["order_number", "email", "first_name", "last_name", "phone", "paystack_reference"]
+    readonly_fields = [
+        "order_number",
+        "subtotal",
+        "delivery_fee",
+        "total",
+        "paystack_reference",
+        "paystack_transaction_id",
+        "payment_channel",
+        "paid_at",
+        "created_at",
+        "updated_at",
+    ]
     inlines = [OrderItemInline]
     actions = ["mark_paid", "mark_fulfilled", "mark_cancelled"]
 
