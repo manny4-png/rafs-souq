@@ -66,6 +66,7 @@ def _request(path: str, *, method: str = "GET", payload: dict | None = None) -> 
         headers={
             "Authorization": f"Bearer {settings.PAYSTACK_SECRET_KEY}",
             "Content-Type": "application/json",
+            "User-Agent": "Rafs-Souq/1.0",
         },
     )
 

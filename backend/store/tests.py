@@ -190,6 +190,27 @@ class PaystackClientTests(SimpleTestCase):
         self.assertEqual(context.exception.code, "authentication_rejected")
         self.assertEqual(str(context.exception), "Invalid key")
 
+    @override_settings(PAYSTACK_SECRET_KEY="sk_test_valid_shape")
+    @patch("store.paystack.urlopen")
+    def test_requests_identify_the_store_to_paystack(self, urlopen):
+        response = urlopen.return_value.__enter__.return_value
+        response.read.return_value = (
+            b'{"status": true, "data": {"authorization_url": '
+            b'"https://checkout.paystack.com/test", "reference": "RS-test"}}'
+        )
+
+        initialize_transaction(
+            email="ama@example.com",
+            amount=1000,
+            currency="GHS",
+            reference="RS-test",
+            callback_url="https://example.com/payment/callback",
+            order_number="RS-ORDER",
+        )
+
+        request = urlopen.call_args.args[0]
+        self.assertEqual(request.get_header("User-agent"), "Rafs-Souq/1.0")
+
 
 @override_settings(CACHES=TEST_CACHES, PAYSTACK_SECRET_KEY="sk_test_webhook_secret")
 class PaystackPaymentTests(TestCase):
