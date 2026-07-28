@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import hmac
 import json
+import logging
 import re
 import secrets
 from decimal import Decimal
@@ -41,6 +42,7 @@ DELIVERY_METHOD_NAMES = {
 SLUG_PATTERN = re.compile(r"^[a-z0-9-]{1,140}$")
 CHECKOUT_TOKEN_SALT = "store.checkout"
 CHECKOUT_TOKEN_MAX_AGE = 30 * 60
+logger = logging.getLogger(__name__)
 
 
 def absolute_media_url(request: HttpRequest, file_field) -> str | None:
@@ -334,10 +336,20 @@ def create_order(request: HttpRequest) -> JsonResponse:
             callback_url=settings.PAYSTACK_CALLBACK_URL,
             order_number=order.order_number,
         )
-    except PaystackError:
+    except PaystackError as exc:
+        logger.exception(
+            "Paystack initialization failed for order %s: %s",
+            order.order_number,
+            exc,
+        )
         order.delete()
+        message = (
+            "Paystack is not configured correctly. Please contact store support."
+            if exc.configuration_error
+            else f"Paystack could not prepare payment: {exc}"
+        )
         return JsonResponse(
-            {"error": "Payment could not be prepared. Please try again."},
+            {"error": message},
             status=502,
         )
 

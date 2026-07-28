@@ -2,7 +2,9 @@ import hashlib
 import hmac
 import json
 from decimal import Decimal
+from io import BytesIO
 from unittest.mock import patch
+from urllib.error import HTTPError
 
 from django.core.cache import cache
 from django.core.files.uploadedfile import SimpleUploadedFile
@@ -12,6 +14,7 @@ from django.test import RequestFactory, SimpleTestCase, TestCase, override_setti
 from .middleware import RequestSecurityMiddleware
 from .models import Category, InventoryMovement, Order, OrderItem, Product
 from .payments import mark_order_paid
+from .paystack import PaystackError, initialize_transaction
 from .storage import CloudinaryMediaStorage
 from .validation import PayloadValidationError, clean_order_payload
 
@@ -146,6 +149,44 @@ class CheckoutTokenTests(TestCase):
         )
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response["Content-Type"], "application/json")
+
+
+class PaystackClientTests(SimpleTestCase):
+    @override_settings(PAYSTACK_SECRET_KEY="pk_test_public_key")
+    def test_public_key_is_rejected_before_request(self):
+        with self.assertRaises(PaystackError) as context:
+            initialize_transaction(
+                email="ama@example.com",
+                amount=1000,
+                currency="GHS",
+                reference="RS-test",
+                callback_url="https://example.com/payment/callback",
+                order_number="RS-ORDER",
+            )
+        self.assertTrue(context.exception.configuration_error)
+
+    @override_settings(PAYSTACK_SECRET_KEY="sk_test_valid_shape")
+    @patch("store.paystack.urlopen")
+    def test_api_authentication_error_is_identified(self, urlopen):
+        urlopen.side_effect = HTTPError(
+            "https://api.paystack.co/transaction/initialize",
+            401,
+            "Unauthorized",
+            hdrs=None,
+            fp=BytesIO(b'{"status": false, "message": "Invalid key"}'),
+        )
+
+        with self.assertRaises(PaystackError) as context:
+            initialize_transaction(
+                email="ama@example.com",
+                amount=1000,
+                currency="GHS",
+                reference="RS-test",
+                callback_url="https://example.com/payment/callback",
+                order_number="RS-ORDER",
+            )
+        self.assertTrue(context.exception.configuration_error)
+        self.assertEqual(str(context.exception), "Invalid key")
 
 
 @override_settings(CACHES=TEST_CACHES, PAYSTACK_SECRET_KEY="sk_test_webhook_secret")

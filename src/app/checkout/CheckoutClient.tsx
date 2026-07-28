@@ -3,15 +3,14 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { motion } from "framer-motion";
-import { ChevronRight, Lock, Check, MapPin, Store, Truck } from "lucide-react";
+import { ChevronRight, Check, MapPin, Store, Truck } from "lucide-react";
 import { cartItemKey, useCartStore } from "@/lib/store";
 import { formatPrice } from "@/lib/utils";
 import { toast } from "@/components/ui/Toast";
 import { BrandLogo } from "@/components/ui/BrandLogo";
 import { createOrder } from "@/lib/client-api";
 
-const STEPS = ["Bag", "Delivery", "Payment", "Confirm"];
+const STEPS = ["Bag", "Delivery", "Payment"];
 
 const DELIVERY_FIELDS = [
   { id: "firstName", label: "First Name", type: "text", autoComplete: "given-name", placeholder: "Ama", colSpan: false },
@@ -124,45 +123,26 @@ export function CheckoutClient() {
       } else {
         window.localStorage.removeItem("rafs-souq-checkout-details");
       }
-      setStep(3);
-      return;
-    }
-    try {
-      setIsPlacingOrder(true);
-      const result = await createOrder({ ...form, fulfillment, deliveryFee }, items);
-      window.location.assign(result.payment.authorizationUrl);
-    } catch (error) {
-      toast.show(
-        error instanceof Error ? error.message : "Order could not be placed.",
-        "info"
-      );
-    } finally {
-      setIsPlacingOrder(false);
+      try {
+        setIsPlacingOrder(true);
+        const result = await createOrder({ ...form, fulfillment, deliveryFee }, items);
+        window.location.assign(result.payment.authorizationUrl);
+      } catch (error) {
+        toast.show(
+          error instanceof Error ? error.message : "Order could not be placed.",
+          "info"
+        );
+      } finally {
+        setIsPlacingOrder(false);
+      }
     }
   };
 
-  if (items.length === 0 && step < 4) {
+  if (items.length === 0) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center gap-4 pt-24 px-5 text-center">
         <p className="font-cormorant text-2xl italic text-muted">Your cart is empty</p>
         <Link href="/shop" className="bg-charcoal text-white text-xs tracking-luxury uppercase px-8 py-3 hover:bg-gold transition-colors">
-          Continue Shopping
-        </Link>
-      </div>
-    );
-  }
-
-  if (step === 4) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center gap-6 px-5 text-center">
-        <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="w-20 h-20 bg-gold rounded-full flex items-center justify-center">
-          <Check size={32} className="text-white" aria-hidden="true" />
-        </motion.div>
-        <h1 className="font-playfair text-3xl text-charcoal">Order Confirmed</h1>
-        <p className="text-muted font-inter max-w-sm">
-          Thank you for your order. You&apos;ll receive a confirmation email shortly with tracking details.
-        </p>
-        <Link href="/shop" className="bg-charcoal text-white text-xs tracking-luxury uppercase px-10 py-4 hover:bg-gold transition-colors">
           Continue Shopping
         </Link>
       </div>
@@ -331,34 +311,17 @@ export function CheckoutClient() {
               </div>
             )}
 
-            {step === 3 && (
-              <div>
-                <h1 id="checkout-step-heading" className="font-playfair text-xl text-charcoal mb-6">Payment</h1>
-                <div className="border border-[#a6514b]/20 bg-[#fdf9f5] p-6">
-                  <div className="flex items-center justify-between gap-4 border-b border-charcoal/10 pb-5">
-                    <div><p className="font-playfair text-lg text-charcoal">Pay securely with Paystack</p><p className="mt-1 text-xs text-muted font-inter">You&apos;ll complete payment in Paystack&apos;s secure checkout.</p></div>
-                    <div className="rounded bg-[#0ba4db] px-3 py-2 text-xs font-bold tracking-wide text-white">paystack</div>
-                  </div>
-                  <div className="grid grid-cols-3 gap-2 py-5 text-center text-[0.68rem] font-medium text-muted font-inter">
-                    <span className="border border-charcoal/10 bg-white px-2 py-3">Card</span>
-                    <span className="border border-charcoal/10 bg-white px-2 py-3">Mobile Money</span>
-                    <span className="border border-charcoal/10 bg-white px-2 py-3">Bank</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-muted text-[0.78rem] font-inter">
-                    <Lock size={13} className="text-gold" aria-hidden="true" />
-                    Raf&apos;s Souq never receives or stores your payment details.
-                  </div>
-                </div>
-              </div>
-            )}
-
             <button
               type="button"
               onClick={handleNext}
               disabled={isPlacingOrder}
               className="mt-8 w-full bg-charcoal text-white py-4 text-[0.78rem] tracking-luxury uppercase font-inter font-medium hover:bg-gold transition-all duration-300 flex items-center justify-center gap-2"
             >
-              {isPlacingOrder ? "Preparing Payment..." : step === 3 ? `Pay ${formatPrice(orderTotal)} with Paystack` : "Continue"}
+              {isPlacingOrder
+                ? "Opening Paystack..."
+                : step === 2
+                  ? `Continue to Paystack · ${formatPrice(orderTotal)}`
+                  : "Continue"}
               <ChevronRight size={15} aria-hidden="true" />
             </button>
           </section>
