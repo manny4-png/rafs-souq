@@ -14,9 +14,16 @@ PAYSTACK_API_URL = "https://api.paystack.co"
 class PaystackError(Exception):
     """Raised when Paystack cannot initialize or verify a transaction."""
 
-    def __init__(self, message: str, *, configuration_error: bool = False):
+    def __init__(
+        self,
+        message: str,
+        *,
+        configuration_error: bool = False,
+        code: str = "paystack_error",
+    ):
         super().__init__(message)
         self.configuration_error = configuration_error
+        self.code = code
 
 
 def _paystack_http_error(exc: HTTPError) -> PaystackError:
@@ -32,17 +39,23 @@ def _paystack_http_error(exc: HTTPError) -> PaystackError:
         return PaystackError(
             message or "Paystack rejected the configured secret key",
             configuration_error=True,
+            code="authentication_rejected",
         )
     return PaystackError(message or f"Paystack returned HTTP {exc.code}")
 
 
 def _request(path: str, *, method: str = "GET", payload: dict | None = None) -> dict:
     if not settings.PAYSTACK_SECRET_KEY:
-        raise PaystackError("PAYSTACK_SECRET_KEY is missing", configuration_error=True)
+        raise PaystackError(
+            "PAYSTACK_SECRET_KEY is missing",
+            configuration_error=True,
+            code="missing_secret_key",
+        )
     if not settings.PAYSTACK_SECRET_KEY.startswith(("sk_test_", "sk_live_")):
         raise PaystackError(
             "PAYSTACK_SECRET_KEY must begin with sk_test_ or sk_live_",
             configuration_error=True,
+            code="invalid_secret_key_format",
         )
 
     body = json.dumps(payload).encode("utf-8") if payload is not None else None

@@ -164,6 +164,7 @@ class PaystackClientTests(SimpleTestCase):
                 order_number="RS-ORDER",
             )
         self.assertTrue(context.exception.configuration_error)
+        self.assertEqual(context.exception.code, "invalid_secret_key_format")
 
     @override_settings(PAYSTACK_SECRET_KEY="sk_test_valid_shape")
     @patch("store.paystack.urlopen")
@@ -186,6 +187,7 @@ class PaystackClientTests(SimpleTestCase):
                 order_number="RS-ORDER",
             )
         self.assertTrue(context.exception.configuration_error)
+        self.assertEqual(context.exception.code, "authentication_rejected")
         self.assertEqual(str(context.exception), "Invalid key")
 
 

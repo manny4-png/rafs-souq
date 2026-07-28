@@ -323,7 +323,7 @@ def create_order(request: HttpRequest) -> JsonResponse:
     except (ValueError, TypeError):
         return JsonResponse({"error": "The order contains invalid or unavailable items"}, status=400)
 
-    reference = f"RS-{secrets.token_urlsafe(18)}"
+    reference = f"RS-{secrets.token_hex(18)}"
     order.paystack_reference = reference
     order.save(update_fields=["paystack_reference", "updated_at"])
 
@@ -343,13 +343,23 @@ def create_order(request: HttpRequest) -> JsonResponse:
             exc,
         )
         order.delete()
-        message = (
-            "Paystack is not configured correctly. Please contact store support."
-            if exc.configuration_error
-            else f"Paystack could not prepare payment: {exc}"
+        configuration_messages = {
+            "missing_secret_key": "Paystack secret key is missing from the Render environment.",
+            "invalid_secret_key_format": (
+                "Render has a public or malformed Paystack key. "
+                "PAYSTACK_SECRET_KEY must contain an sk_test_ or sk_live_ secret key."
+            ),
+            "authentication_rejected": (
+                "Paystack rejected the secret key configured in Render. "
+                "Generate or copy a current secret key from the Paystack dashboard."
+            ),
+        }
+        message = configuration_messages.get(
+            exc.code,
+            f"Paystack could not prepare payment: {exc}",
         )
         return JsonResponse(
-            {"error": message},
+            {"error": message, "code": exc.code},
             status=502,
         )
 
