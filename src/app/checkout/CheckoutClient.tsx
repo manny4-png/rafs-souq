@@ -64,7 +64,7 @@ function PaymentMethodsPanel() {
         All transactions are secure and encrypted.
       </p>
 
-      <div className="mt-4 overflow-hidden rounded-xl border border-[#a6514b]/45 bg-white">
+      <div className="mt-4 rounded-xl border border-[#a6514b]/45 bg-white">
         <div className="flex flex-col gap-4 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="font-inter text-sm font-semibold text-charcoal">Paystack</p>
@@ -130,7 +130,7 @@ function PaymentMethodsPanel() {
           </div>
         </div>
 
-        <div className="border-t border-charcoal/10 bg-cream/55 px-4 py-4">
+        <div className="rounded-b-xl border-t border-charcoal/10 bg-cream/55 px-4 py-4">
           <p className="text-center text-sm text-charcoal font-inter">
             You&apos;ll be redirected to Paystack to choose and complete your payment.
           </p>
