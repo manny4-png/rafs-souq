@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { ChevronRight, Check, MapPin, Store, Truck } from "lucide-react";
+import { Building2, ChevronRight, Check, CreditCard, LockKeyhole, MapPin, Smartphone, Store, Truck } from "lucide-react";
 import { cartItemKey, useCartStore } from "@/lib/store";
 import { formatPrice } from "@/lib/utils";
 import { toast } from "@/components/ui/Toast";
@@ -53,6 +53,59 @@ const initialForm: FormState = {
   country: "GH",
   deliveryArea: "",
 };
+
+function PaymentMethodsPanel() {
+  return (
+    <div className="mt-8" aria-labelledby="payment-methods-heading">
+      <h2 id="payment-methods-heading" className="font-playfair text-lg text-charcoal">
+        Payment
+      </h2>
+      <p className="mt-1 text-sm text-muted font-inter">
+        All transactions are secure and encrypted.
+      </p>
+
+      <div className="mt-4 overflow-hidden rounded-xl border border-[#a6514b]/45 bg-white">
+        <div className="flex flex-col gap-4 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="font-inter text-sm font-semibold text-charcoal">Paystack</p>
+            <p className="mt-1 flex items-center gap-1.5 text-[0.7rem] text-muted font-inter">
+              <LockKeyhole size={12} aria-hidden="true" />
+              Secure checkout
+            </p>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2" aria-label="Accepted payment providers">
+            <span className="relative flex h-9 w-14 items-center justify-center rounded-md bg-[#161616]" title="Mastercard">
+              <span className="h-5 w-5 rounded-full bg-[#eb001b]" />
+              <span className="-ml-2 h-5 w-5 rounded-full bg-[#f79e1b]/95" />
+              <span className="sr-only">Mastercard</span>
+            </span>
+            <span className="flex h-9 w-14 items-center justify-center rounded-md bg-[#1739b7] text-[0.85rem] font-black italic text-white" title="Visa">
+              VISA
+            </span>
+            <span className="flex h-9 min-w-14 items-center justify-center rounded-md border border-charcoal/10 bg-[#ffcc00] px-2 text-center text-[0.58rem] font-extrabold leading-tight text-[#111]" title="MTN Mobile Money">
+              MTN<br />MoMo
+            </span>
+            <span className="flex h-9 items-center justify-center rounded-md border border-charcoal/10 bg-white px-2.5 text-[0.7rem] font-semibold text-charcoal" title="AirtelTigo and Telecel">
+              +2
+            </span>
+          </div>
+        </div>
+
+        <div className="border-t border-charcoal/10 bg-cream/55 px-4 py-4">
+          <p className="text-center text-sm text-charcoal font-inter">
+            You&apos;ll be redirected to Paystack to choose and complete your payment.
+          </p>
+          <div className="mt-3 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-[0.72rem] text-muted font-inter">
+            <span className="flex items-center gap-1.5"><Smartphone size={14} className="text-[#a6514b]" />Mobile Money</span>
+            <span className="flex items-center gap-1.5"><CreditCard size={14} className="text-[#a6514b]" />Card</span>
+            <span className="flex items-center gap-1.5"><Building2 size={14} className="text-[#a6514b]" />Bank Transfer</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export function CheckoutClient() {
   const [step, setStep] = useState(1);
@@ -311,11 +364,13 @@ export function CheckoutClient() {
               </div>
             )}
 
+            {step === 2 && <PaymentMethodsPanel />}
+
             <button
               type="button"
               onClick={handleNext}
               disabled={isPlacingOrder}
-              className="mt-8 w-full bg-charcoal text-white py-4 text-[0.78rem] tracking-luxury uppercase font-inter font-medium hover:bg-gold transition-all duration-300 flex items-center justify-center gap-2"
+              className={`${step === 2 ? "mt-4" : "mt-8"} w-full bg-charcoal text-white py-4 text-[0.78rem] tracking-luxury uppercase font-inter font-medium hover:bg-gold transition-all duration-300 flex items-center justify-center gap-2`}
             >
               {isPlacingOrder
                 ? "Opening Paystack..."
