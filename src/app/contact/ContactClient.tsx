@@ -9,15 +9,63 @@ import { toast } from "@/components/ui/Toast";
 export function ContactClient() {
   const [form, setForm] = useState({ name: "", email: "", phone: "", subject: "", message: "" });
   const [sent, setSent] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.name || !form.email || !form.message) {
+    if (!form.name.trim() || !form.email.trim() || !form.message.trim()) {
       toast.show("Please fill in all required fields", "info");
       return;
     }
-    setSent(true);
-    toast.show("Message sent! We'll get back to you soon.");
+
+    const accessKey = process.env.NEXT_PUBLIC_WEB3FORMS_ACCESS_KEY;
+    if (!accessKey) {
+      toast.show("The contact form is temporarily unavailable.", "info");
+      return;
+    }
+
+    setSubmitting(true);
+
+    try {
+      const response = await fetch("https://api.web3forms.com/submit", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify({
+          access_key: accessKey,
+          from_name: "Raf's Souq Website",
+          subject: form.subject.trim() || "New contact message",
+          name: form.name.trim(),
+          email: form.email.trim(),
+          phone: form.phone.trim(),
+          message: form.message.trim(),
+          botcheck: "",
+        }),
+      });
+
+      const result = (await response.json()) as {
+        success?: boolean;
+        message?: string;
+      };
+
+      if (!response.ok || !result.success) {
+        throw new Error(result.message || "Your message could not be sent.");
+      }
+
+      setSent(true);
+      toast.show("Message sent! We'll get back to you soon.");
+    } catch (error) {
+      toast.show(
+        error instanceof Error
+          ? error.message
+          : "Your message could not be sent. Please try again.",
+        "info"
+      );
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -167,9 +215,10 @@ export function ContactClient() {
 
               <button
                 type="submit"
-                className="w-full bg-charcoal text-white py-4 text-[0.78rem] tracking-luxury uppercase font-inter font-medium hover:bg-gold transition-all duration-300"
+                disabled={submitting}
+                className="w-full bg-charcoal text-white py-4 text-[0.78rem] tracking-luxury uppercase font-inter font-medium hover:bg-gold transition-all duration-300 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                Send Message
+                {submitting ? "Sending..." : "Send Message"}
               </button>
             </form>
           )}

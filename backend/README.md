@@ -114,6 +114,7 @@ then provide the environment values marked `sync: false`:
 - `PAYSTACK_CALLBACK_URL`: the public frontend URL followed by `/payment/callback`.
 - `DJANGO_ADMIN_URL`: a private path ending in `/`, for example `management-7f3a/`.
 - SMTP host, username, and password for transactional email.
+- `ORDER_NOTIFICATION_EMAIL`: the store owner's email address for paid-order notifications. If omitted, the store support email from Django admin is used.
 
 Render generates `DJANGO_SECRET_KEY` and connects `DATABASE_URL` and
 `DJANGO_CACHE_URL` automatically. Never paste production values into `.env` or

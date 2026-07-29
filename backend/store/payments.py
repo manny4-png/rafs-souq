@@ -6,6 +6,7 @@ from django.db import transaction
 from django.utils import timezone
 
 from .models import InventoryMovement, Order, Product, ProductVariant
+from .notifications import notify_owner_of_paid_order
 
 
 class PaymentValidationError(ValueError):
@@ -94,4 +95,5 @@ def mark_order_paid(order: Order, payment: dict) -> Order:
             "updated_at",
         ]
     )
+    transaction.on_commit(lambda: notify_owner_of_paid_order(order.pk))
     return order

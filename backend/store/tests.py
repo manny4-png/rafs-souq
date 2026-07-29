@@ -7,6 +7,7 @@ from unittest.mock import patch
 from urllib.error import HTTPError
 
 from django.core.cache import cache
+from django.core import mail
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.http import HttpResponse
 from django.test import RequestFactory, SimpleTestCase, TestCase, override_settings
@@ -212,7 +213,12 @@ class PaystackClientTests(SimpleTestCase):
         self.assertEqual(request.get_header("User-agent"), "Rafs-Souq/1.0")
 
 
-@override_settings(CACHES=TEST_CACHES, PAYSTACK_SECRET_KEY="sk_test_webhook_secret")
+@override_settings(
+    CACHES=TEST_CACHES,
+    PAYSTACK_SECRET_KEY="sk_test_webhook_secret",
+    EMAIL_BACKEND="django.core.mail.backends.locmem.EmailBackend",
+    ORDER_NOTIFICATION_EMAIL="owner@example.com",
+)
 class PaystackPaymentTests(TestCase):
     def setUp(self):
         category = Category.objects.create(name="Turbans")
@@ -261,8 +267,9 @@ class PaystackPaymentTests(TestCase):
         return data
 
     def test_successful_payment_marks_order_paid_and_deducts_stock_once(self):
-        mark_order_paid(self.order, self.payment())
-        mark_order_paid(self.order, self.payment())
+        with self.captureOnCommitCallbacks(execute=True):
+            mark_order_paid(self.order, self.payment())
+            mark_order_paid(self.order, self.payment())
 
         self.order.refresh_from_db()
         self.product.refresh_from_db()
@@ -270,6 +277,10 @@ class PaystackPaymentTests(TestCase):
         self.assertEqual(self.order.status, Order.Status.PAID)
         self.assertEqual(self.product.stock_quantity, 4)
         self.assertEqual(InventoryMovement.objects.count(), 1)
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(mail.outbox[0].to, ["owner@example.com"])
+        self.assertIn(self.order.order_number, mail.outbox[0].subject)
+        self.assertIn("Rose Turban", mail.outbox[0].body)
 
     def test_payment_amount_must_match_order(self):
         with self.assertRaises(ValueError):
