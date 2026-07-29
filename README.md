@@ -32,6 +32,32 @@ npm run build
 npm start
 ```
 
+### Cloudflare Workers Deployment
+
+The Next.js storefront is configured for Cloudflare Workers with OpenNext. The
+Django API, PostgreSQL database, and Redis cache remain on Render.
+
+In Cloudflare Workers Builds, set this build variable before deploying:
+
+```text
+NEXT_PUBLIC_API_URL=https://YOUR-RENDER-API-DOMAIN/api
+```
+
+Use the following commands locally:
+
+```bash
+# Build and preview in the Cloudflare workerd runtime
+npm run preview
+
+# Build and deploy to Cloudflare Workers
+npm run deploy
+```
+
+The production storefront URL must also be added to the Render environment
+variables `DJANGO_CORS_ALLOWED_ORIGINS`, `DJANGO_CSRF_TRUSTED_ORIGINS`, and
+`FRONTEND_SITE_URL`. Set `PAYSTACK_CALLBACK_URL` to the storefront URL followed
+by `/payment/callback`.
+
 ---
 
 ## 📁 Project Structure
