@@ -83,11 +83,49 @@ function PaymentMethodsPanel() {
             <span className="flex h-9 w-14 items-center justify-center rounded-md bg-[#1739b7] text-[0.85rem] font-black italic text-white" title="Visa">
               VISA
             </span>
-            <span className="flex h-9 min-w-14 items-center justify-center rounded-md border border-charcoal/10 bg-[#ffcc00] px-2 text-center text-[0.58rem] font-extrabold leading-tight text-[#111]" title="MTN Mobile Money">
-              MTN<br />MoMo
+            <span className="relative flex h-9 w-14 items-center justify-center overflow-hidden rounded-md border border-charcoal/10 bg-white px-1.5" title="MTN Mobile Money">
+              <Image
+                src="/payment/mtn-momo.png"
+                alt="MTN MoMo"
+                width={88}
+                height={40}
+                className="h-full w-full object-contain"
+              />
             </span>
-            <span className="flex h-9 items-center justify-center rounded-md border border-charcoal/10 bg-white px-2.5 text-[0.7rem] font-semibold text-charcoal" title="AirtelTigo and Telecel">
-              +2
+            <span className="group relative">
+              <button
+                type="button"
+                aria-label="Show AT Money and Telecel"
+                aria-describedby="more-payment-providers"
+                className="flex h-9 items-center justify-center rounded-md border border-charcoal/10 bg-white px-2.5 text-[0.7rem] font-semibold text-[#a6514b] outline-none transition-colors hover:border-[#a6514b]/40 focus-visible:ring-2 focus-visible:ring-[#a6514b]/30"
+              >
+                +2
+              </button>
+              <span
+                id="more-payment-providers"
+                role="tooltip"
+                className="pointer-events-none absolute bottom-[calc(100%+12px)] right-0 z-20 flex translate-y-1 items-center gap-2 rounded-xl bg-charcoal p-2.5 opacity-0 shadow-xl transition-all duration-200 group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:translate-y-0 group-focus-within:opacity-100"
+              >
+                <span className="flex h-10 w-16 items-center justify-center overflow-hidden rounded bg-white px-1.5">
+                  <Image
+                    src="/payment/at-money.png"
+                    alt="AT Money"
+                    width={80}
+                    height={48}
+                    className="h-full w-full object-contain"
+                  />
+                </span>
+                <span className="flex h-10 w-12 items-center justify-center overflow-hidden rounded bg-white p-1">
+                  <Image
+                    src="/payment/telecel.png"
+                    alt="Telecel"
+                    width={48}
+                    height={48}
+                    className="h-full w-full object-contain"
+                  />
+                </span>
+                <span className="absolute -bottom-1.5 right-3 h-3 w-3 rotate-45 bg-charcoal" aria-hidden="true" />
+              </span>
             </span>
           </div>
         </div>
