@@ -34,7 +34,7 @@ export function ProductClient({
     if (!variants.length) return product.sizes || [];
     return Array.from(new Set(
       variants
-        .filter((variant) => variant.inStock && (!variant.colorName || variant.colorName === selectedColor.name))
+        .filter((variant) => !variant.colorName || variant.colorName === selectedColor.name)
         .map((variant) => variant.size)
         .filter(Boolean)
     ));
@@ -45,6 +45,14 @@ export function ProductClient({
       (!variant.colorName || variant.colorName === selectedColor.name) &&
       (!variant.size || variant.size === selectedSize)
   );
+  const isSizeAvailable = (size: string) =>
+    !variants.length ||
+    variants.some(
+      (variant) =>
+        variant.inStock &&
+        (!variant.colorName || variant.colorName === selectedColor.name) &&
+        (!variant.size || variant.size === size)
+    );
   const selectedPrice = product.price + (selectedVariant?.priceAdjustment || 0);
 
   const handleAddToCart = () => {
@@ -246,7 +254,7 @@ export function ProductClient({
                   {product.colors.map((color) => (
                     <button
                       type="button"
-                      key={color.hex}
+                      key={`${color.name}-${color.hex}`}
                       onClick={() => {
                         setSelectedColor(color);
                         const firstSize = variants.find(
@@ -281,11 +289,13 @@ export function ProductClient({
                         type="button"
                         key={size}
                         onClick={() => setSelectedSize(size)}
+                        disabled={!isSizeAvailable(size)}
                         className={cn(
                           "px-4 py-2 text-[0.78rem] font-inter border transition-all",
                           selectedSize === size
                             ? "bg-charcoal text-white border-charcoal"
-                            : "border-charcoal/20 text-muted hover:border-charcoal hover:text-charcoal"
+                            : "border-charcoal/20 text-muted hover:border-charcoal hover:text-charcoal",
+                          !isSizeAvailable(size) && "cursor-not-allowed opacity-40 line-through"
                         )}
                       >
                         {size}

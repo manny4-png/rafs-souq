@@ -107,6 +107,14 @@ def colour_name_to_swatch(name: str) -> str:
 
 
 def serialize_product(request: HttpRequest, product: Product) -> dict:
+    active_variants = [
+        variant for variant in product.variants.all() if variant.is_active
+    ]
+    in_stock = (
+        any(variant.stock_quantity > 0 for variant in active_variants)
+        if active_variants
+        else product.is_in_stock
+    )
     return {
         "id": product.id,
         "name": product.name,
@@ -123,9 +131,9 @@ def serialize_product(request: HttpRequest, product: Product) -> dict:
         "badge": product.badge or None,
         "isFeatured": product.is_featured,
         "stockQuantity": product.stock_quantity,
-        "inStock": product.is_in_stock,
+        "inStock": in_stock,
         "images": product_image_urls(request, product),
-        "variants": [serialize_variant(variant) for variant in product.variants.filter(is_active=True)],
+        "variants": [serialize_variant(variant) for variant in active_variants],
         "updatedAt": product.updated_at.isoformat(),
     }
 

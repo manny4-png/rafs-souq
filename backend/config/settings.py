@@ -217,6 +217,7 @@ PAYSTACK_CALLBACK_URL = os.environ.get(
     "PAYSTACK_CALLBACK_URL",
     f"{FRONTEND_SITE_URL.rstrip('/')}/payment/callback",
 ).strip()
-FILE_UPLOAD_MAX_MEMORY_SIZE = 5 * 1024 * 1024
-DATA_UPLOAD_MAX_MEMORY_SIZE = API_MAX_BODY_BYTES
+# Admin media uploads have no application-level size cap. API requests retain
+# their separate limit in RequestSecurityMiddleware.
+DATA_UPLOAD_MAX_MEMORY_SIZE = None
 DATA_UPLOAD_MAX_NUMBER_FIELDS = 200

@@ -9,11 +9,9 @@ from django.utils import timezone
 from django.utils.text import slugify
 
 
-MAX_IMAGE_BYTES = 5 * 1024 * 1024
-
-
 def validate_image_size(image):
-    if image.size > MAX_IMAGE_BYTES:
+    """Legacy validator retained only so historical migration 0005 can load."""
+    if image.size > 5 * 1024 * 1024:
         raise ValidationError("Images must be 5 MB or smaller.")
 
 
@@ -29,7 +27,7 @@ class Category(TimeStampedModel):
     name = models.CharField(max_length=120, unique=True)
     slug = models.SlugField(max_length=140, unique=True, blank=True)
     description = models.TextField(blank=True)
-    image = models.ImageField(upload_to="categories/", blank=True, validators=[validate_image_size])
+    image = models.ImageField(upload_to="categories/", blank=True)
     is_active = models.BooleanField(default=True)
     sort_order = models.PositiveIntegerField(default=0)
 
@@ -76,7 +74,7 @@ class Product(TimeStampedModel):
         validators=[MinValueValidator(Decimal("0.00"))],
     )
     currency = models.CharField(max_length=3, default="GHS")
-    main_image = models.ImageField(upload_to="products/main/", blank=True, validators=[validate_image_size])
+    main_image = models.ImageField(upload_to="products/main/", blank=True)
     badge = models.CharField(max_length=24, choices=Badge.choices, blank=True, default=Badge.NONE)
     status = models.CharField(max_length=24, choices=Status.choices, default=Status.DRAFT)
     is_featured = models.BooleanField(default=False)
@@ -114,7 +112,7 @@ class Product(TimeStampedModel):
 
 class ProductImage(TimeStampedModel):
     product = models.ForeignKey(Product, related_name="images", on_delete=models.CASCADE)
-    image = models.ImageField(upload_to="products/gallery/", validators=[validate_image_size])
+    image = models.ImageField(upload_to="products/gallery/")
     alt_text = models.CharField(max_length=180, blank=True)
     sort_order = models.PositiveIntegerField(default=0)
 

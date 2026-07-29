@@ -9,8 +9,7 @@ import type { Collection } from "@/types";
 
 export function CollectionsGrid({ collections }: { collections: Collection[] }) {
   const { ref, inView } = useInView({ threshold: 0.1, triggerOnce: true });
-  const visibleCollections = collections.slice(0, 5);
-  const featuredCollection = visibleCollections[0];
+  const featuredCollection = collections[0];
 
   return (
     <section
@@ -65,7 +64,7 @@ export function CollectionsGrid({ collections }: { collections: Collection[] }) 
           </motion.div>
 
           {/* Right column — two shorter cards */}
-          {visibleCollections.slice(1, 3).map((col, i) => (
+          {collections.slice(1, 3).map((col, i) => (
             <motion.div
               key={col.id}
               initial={{ opacity: 0, y: 30 }}
@@ -77,7 +76,7 @@ export function CollectionsGrid({ collections }: { collections: Collection[] }) 
           ))}
 
           {/* Bottom row — two wide cards */}
-          {visibleCollections.slice(3, 5).map((col, i) => (
+          {collections.slice(3).map((col, i) => (
             <motion.div
               key={col.id}
               initial={{ opacity: 0, y: 30 }}
