@@ -164,24 +164,24 @@ export function ProductClient({
           <div className="space-y-3">
             {/* Main image */}
             <div className="relative aspect-[4/5] overflow-hidden bg-sand">
-              {product.images.map((img, i) => (
+              {product.images[activeImage] && (
                 <motion.div
-                  key={i}
-                  initial={false}
-                  animate={{ opacity: activeImage === i ? 1 : 0 }}
+                  key={activeImage}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
                   transition={{ duration: 0.4 }}
                   className="absolute inset-0"
                 >
                   <Image
-                    src={img}
-                    alt={`${product.name} - view ${i + 1}`}
+                    src={product.images[activeImage]}
+                    alt={`${product.name} - view ${activeImage + 1}`}
                     fill
                     sizes="(max-width: 1024px) 100vw, 50vw"
                     className="object-cover"
-                    priority={i === 0}
+                    priority={activeImage === 0}
                   />
                 </motion.div>
-              ))}
+              )}
               {product.badge && (
                 <span className={cn(
                   "absolute top-4 left-4 text-[0.62rem] tracking-[0.14em] uppercase px-3 py-1.5 font-inter font-medium z-10",

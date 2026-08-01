@@ -68,16 +68,13 @@ export function ProductCard({ product, className }: ProductCardProps) {
             />
           )}
 
-          {product.images[1] && (
+          {hovering && product.images[1] && (
             <Image
               src={product.images[1]}
               alt=""
               fill
               sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
-              className={cn(
-                "object-cover absolute inset-0 product-card-secondary",
-                hovering ? "opacity-100" : "opacity-0"
-              )}
+              className="object-cover absolute inset-0 product-card-secondary"
             />
           )}
         </Link>

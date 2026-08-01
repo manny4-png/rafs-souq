@@ -28,7 +28,18 @@ class CloudinaryMediaStorage(Storage):
         return result["public_id"]
 
     def url(self, name):
-        return CloudinaryImage(name).build_url(secure=True)
+        # Cloudinary applies this delivery transformation on demand and caches the
+        # result at its CDN edge. Because ImageField stores the public ID (rather
+        # than the generated URL), this also optimizes every previously uploaded
+        # image without a data migration or re-upload.
+        return CloudinaryImage(name).build_url(
+            secure=True,
+            width=1600,
+            crop="limit",
+            quality="auto:good",
+            fetch_format="auto",
+            flags="progressive",
+        )
 
     def exists(self, name):
         # Every upload receives a UUID, so collision checks are unnecessary.
@@ -37,4 +48,3 @@ class CloudinaryMediaStorage(Storage):
     def delete(self, name):
         if name:
             uploader.destroy(name, resource_type="image", invalidate=True)
-

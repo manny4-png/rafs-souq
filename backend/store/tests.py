@@ -35,6 +35,23 @@ class CloudinaryMediaStorageTests(SimpleTestCase):
         self.assertEqual(upload.call_args.kwargs["resource_type"], "image")
         self.assertFalse(upload.call_args.kwargs["overwrite"])
 
+    @patch("store.storage.CloudinaryImage")
+    def test_url_uses_cached_delivery_optimizations(self, cloudinary_image):
+        cloudinary_image.return_value.build_url.return_value = "https://example.test/optimized"
+
+        url = CloudinaryMediaStorage().url("rafs-souq/products/main/rose-abc123")
+
+        self.assertEqual(url, "https://example.test/optimized")
+        cloudinary_image.assert_called_once_with("rafs-souq/products/main/rose-abc123")
+        cloudinary_image.return_value.build_url.assert_called_once_with(
+            secure=True,
+            width=1600,
+            crop="limit",
+            quality="auto:good",
+            fetch_format="auto",
+            flags="progressive",
+        )
+
     @patch("store.storage.uploader.destroy")
     def test_delete_invalidates_cloudinary_asset(self, destroy):
         CloudinaryMediaStorage().delete("rafs-souq/products/main/rose-abc123")
